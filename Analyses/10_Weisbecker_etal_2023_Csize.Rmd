@@ -1,0 +1,434 @@
+---
+title: "Weisbecker et al. (2023) marsupial coordinates"
+author: "Vera Weisbecker"
+date: "26 June 2019"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+###This is code for the analysis of cranial centroid size in the thylacine compared to other marsupial mammals, using the dataset from "Multiple modes of inference reveal less phylogenetic signal in marsupial basicranial shape compared to the rest of the cranium" by Vera Weisbecker, Leonie Lange-Hodgson, Robin M D Beck, Arianna Harrington, Michael S Y Lee, Thomas Guillerme, and Matthew Phillips, published at the Mammalian Skull Special Issue of the Philosophical Transactions of the Royal Society B. DOI:10.1098/rstb.2022.0085
+
+## load required packages
+
+```{r }
+
+library(geomorph) # [github::geomorphR/geomorph] v4.0.4 
+library(plyr)     # CRAN v1.8.7 
+library(abind)    # CRAN v1.4-5 
+library(ape)      # CRAN v5.6-2
+library(here)
+library(geiger)
+library(nlme)
+library(svglite)
+
+# This sets the wd to local
+library(rstudioapi) # Safely Access the RStudio API
+
+setwd(dirname(getActiveDocumentContext()$path))
+
+
+```
+
+## Read in coordinates
+
+
+```{r }
+
+filelist <- list.files(path= "../Data/Weisbecker_etal_data/Coordinates", pattern = "*.txt")
+
+
+#Next step is to remove the Museum IDs from the specimen names   
+  
+ 
+  names <- gsub (".txt", "", filelist) # extracts names of specimens from the file name
+  filelist <- paste("../Data/Weisbecker_etal_data/Coordinates/", filelist, sep="") # rename with path
+  coords <- NULL # make empty object that will be filled with 3D array of coordinate data
+  for (i in 1:length(filelist)){
+    temp  <- read.morphologika(filelist[i]) 
+    k <- dim(temp)[1] 
+    coords <- rbind(coords, two.d.array(temp)) }
+  Data <- arrayspecs(coords, k, 3) 
+  dimnames(Data)[[3]] <- names
+  remove(i, filelist, k, coords, temp) # clean up environment
+  
+specimenList <- read.csv("../Data/Weisbecker_etal_data/Species_classifier.csv", header = TRUE, row.names = 1)
+
+length(Data[,,1])
+
+```
+
+
+
+```{r}
+
+
+
+Landpairs_full <- read.csv("../Data/Weisbecker_etal_data/Landpairs_All.csv", header=FALSE)
+
+
+```
+
+
+
+#GPA for all coordinates
+
+```{r}
+
+#Run GPA
+GPA_AllSpecimens <- gpagen(Data, Proj = TRUE, ProcD = FALSE)
+
+#make sure dimnames of coords match with rownames of specdata file
+rownames(specimenList) == dimnames(GPA_AllSpecimens$coords)[[3]]
+
+
+
+```
+
+#Centroid sizes with _raw_ data
+```{r}
+
+pdf(file="../Figures/SuppFX_centroid_size_checks.pdf",width = 14, height = 14)
+
+par(mfrow=c(2,1))
+
+cexes=0.6
+
+Csize_ordered <- GPA_AllSpecimens$Csize[order(GPA_AllSpecimens$Csize)]
+
+plot( log(Csize_ordered) ~ seq(1:length(Csize_ordered)),pch=19, col="maroon1", xlab= "Specimens ordered by centroid size", ylab = "Centroid size", main = "Specimens ordered by centroid size")
+text( log(Csize_ordered) ~ seq(1:length(Csize_ordered)), label = names(Csize_ordered), cex = cexes)
+
+#plot(log(GPA_AllSpecimens$Csize) ~ log (specimenList$Body_mass_g))
+#text(log(GPA_AllSpecimens$Csize) ~ log (specimenList$Body_mass_g), labels=rownames(specimenList), cex = cexes)
+
+# svglite(filename = here::here("Figures", "Weisbecker_Csize.svg"),
+#         height = 4)
+plot(log(GPA_AllSpecimens$Csize) ~  log(specimenList$Body_mass_g), pch=18, col="maroon1", xlab = "Body mass (g)", ylab = "Centroid sizes", main = " Centroid size plotted against body mass")
+text(log(GPA_AllSpecimens$Csize) ~  log(specimenList$Body_mass_g), labels=rownames(specimenList), cex = cexes)
+abline (lm(log(GPA_AllSpecimens$Csize) ~  log(specimenList$Body_mass_g)))
+
+ dev.off()
+
+remove(cexes, Csize_ordered)
+
+```
+
+
+#Make a list of species as the basis for the classifier file. I only ran this once, then filled in the remaining data (e.g. diet/loco) manually. This just guarantees that the specimen classifier file and specimens landmarked are definitely the same.
+
+```{r}
+
+
+#speclist <- matrix(unlist (strsplit(gsub(".txt", "", filelist), "_" )), ncol=3, byrow = TRUE )
+#rownames(speclist) <- gsub(".txt", "", filelist); colnames(speclist) <- c("Genus", "Species", "Museum_ID")
+
+#write.csv(speclist, file = "../Data/Raw/Species_classifier.csv")
+
+specimenList$spname <- paste (substr(specimenList$Genus,1,1), substr(specimenList$Species, 1,3), sep = "")
+
+specimenList$Genus_species <- paste (specimenList$Genus, specimenList$Species, sep = "_")
+
+#make sure the specimens and the classifiers are in the same order - this all has to be TRUE
+dimnames(GPA_AllSpecimens$coords)[[3]] == rownames (specimenList)
+
+#And average according to species immediately because we don't really need individual values
+
+specieslist <- ddply (specimenList, .(Genus_species), summarize, spname = unique(spname), Genus=unique(Genus), Species = unique(Species), Order=unique(Order), Body_mass_g = mean(Body_mass_g), Locomotion = unique(Locomotion), Diet = unique(Diet))
+rownames(specieslist) <- specieslist$Genus_species
+
+#Take away doubled up genus-species designation
+specieslist <- specieslist[,-1]
+
+```
+
+#Read in phylogeny (needs to be done here so species orders are OK throughout)
+
+```{r}
+
+
+raw_tree=read.nexus("../Data/Weisbecker_etal_data/Reference_Phylogeny/Phylogeny_Phillips_merged.nex")
+
+#Changing a few placeholder names on the phylogeny with the species name sampled in reality (for these species, only DNA data from close relatives were available)
+
+raw_tree$tip.label[which(raw_tree$tip.label == "Caluromys_philander")] <- "Caluromys_derbianus"
+raw_tree$tip.label[which(raw_tree$tip.label == "Dendrolagus_dorianus")] <- "Dendrolagus_inustus"
+raw_tree$tip.label[which(raw_tree$tip.label == "Notoryctes_typhlops")] <- "Notoryctes_caurinus"
+
+namecheck <- geiger::name.check(raw_tree, specieslist)
+
+#Removing all species in the tree that is not apart of the study
+tree=drop.tip(raw_tree,namecheck$tree_not_data)
+
+#check that tree and species list are congruent using geiger's name.check
+geiger::name.check(tree, specieslist)
+
+
+#Checking to see if the species coordinates and the species on the tree match and there are no NAs, matchtest length must be 0
+Matchtest <- match(tree$tip.label,rownames(specieslist))
+length(which(is.na (Matchtest)))
+
+save(tree, file = "../Data/Processed/Tree_processed.rda")
+
+remove(namecheck, raw_tree, Matchtest)
+
+```
+
+#Making sure species list is in the right order for the tree - this can then flow on to the other lists
+
+```{r}
+
+specieslist <- specieslist[match(tree$tip.label,rownames(specieslist)),]
+
+tree$tip.label == rownames(specieslist)
+
+
+```
+
+
+#averaging multiple species and removing symmetry
+
+```{r}
+
+# shape data
+ind.coords <- aggregate(two.d.array(GPA_AllSpecimens$coords) ~ specimenList$Genus_species, FUN=mean)[,-1]
+
+rownames(ind.coords) <- unique(specimenList$Genus_species)
+ind.coords <- arrayspecs(ind.coords, p=ncol(ind.coords)/3, k=3)
+#Making sure the coords match up with species lists match up with the phylogeny.
+ind.coords <- ind.coords[,,match( rownames(specieslist), dimnames(ind.coords)[[3]])]
+
+dimnames(ind.coords)[[3]] == rownames(specieslist)
+
+#Also just out of paranoia, check a couple of configurations to ensure each species name is allocated to the correct species: 
+
+open3d()
+mfrow3d(2,2, sharedMouse=TRUE)
+
+next3d()
+plot3d(ind.coords[,,which(dimnames(ind.coords)[[3]]=="Tarsipes_rostratus")], aspect = FALSE,  xlab = "", ylab = "", zlab = "")
+decorate3d(main = "Tarsipes - long nose")
+
+next3d()
+plot3d(ind.coords[,,which(dimnames(ind.coords)[[3]]=="Vombatus_ursinus")], aspect = FALSE, xlab = "", ylab = "", zlab = "")
+decorate3d(main = "Wombat - short nose")
+
+next3d()
+plot3d(ind.coords[,,which(dimnames(ind.coords)[[3]]=="Macrotis_lagotis")], aspect = FALSE, xlab = "", ylab = "", zlab = "" )
+decorate3d(main = "Bilby - long nose")
+
+next3d()
+plot3d(ind.coords[,,which(dimnames(ind.coords)[[3]]=="Petaurus_australis")], aspect = FALSE)
+decorate3d( main= "Sugar glider - wide head")
+
+#Now remove asymmetry
+
+GPASymm <- bilat.symmetry(ind.coords, ind=dimnames(ind.coords)[[3]], side=NULL, replicate=NULL, object.sym=TRUE, land.pairs =Landpairs_full)
+dimnames(GPASymm$symm.shape)[[3]] <- dimnames(ind.coords)[[3]] # rename
+
+#Are we removing a lot of variation by removing shape? No.
+ GPASymm$shape.anova
+
+# Moving on with just the symmetric shape component
+ind.coords <- GPASymm$symm.shape 
+
+
+#Just once, visually making sure the averaging of duplicate specimesn really works - using v. ursinus as an example - looks ok 
+
+#(GPA_AllSpecimens$coords[,,62] + GPA_AllSpecimens$coords[,,61]) /2
+
+### Bilateral symmetry GPA on averaged specimens
+
+
+# centroid size data, means for multiple specimens
+ind.Csize <- as.vector(aggregate(GPA_AllSpecimens$Csize ~ specimenList$Genus_species, FUN=mean)[,-1])
+names(ind.Csize) <- unique(specimenList$Genus_species)
+
+ind.Csize <- ind.Csize[match(rownames(specieslist), names(ind.Csize))]
+
+
+
+#manually checking just a value for proper averaging, picking V. ursinus and OK 
+
+mean (c(GPA_AllSpecimens$Csize[62], GPA_AllSpecimens$Csize[61])) == ind.Csize[which(names(ind.Csize)=="Vombatus_ursinus")]
+
+
+
+#Turning into gdf frame and giving names
+GPA_Allmean <- geomorph.data.frame(coords=ind.coords, Csize=ind.Csize)
+
+#We need consensus shapes for later
+GPA_allmean_consensus <- GPA_AllSpecimens$consensus
+
+
+#a few combinations of checks for alignment of species list, phylogeny, csize, and coords. 
+
+dimnames(GPA_Allmean$coords)[[3]] == tree$tip.label;names(GPA_Allmean$Csize) == rownames(specieslist);tree$tip.label == dimnames(GPA_Allmean$coords)[[3]];names(ind.Csize)== tree$tip.label
+
+
+#Outliers still plot the same - Notoryctes, Vombatus, Tarsipes. Just an additional safety check that the averaging has all worked
+plotOutliers(GPA_Allmean$coords)
+
+
+```
+
+### Here we change authors and the following poor excuse for code is written by DSRovinsky
+
+```{r}
+source(here::here("Functions", "Fun.R"))
+```
+
+```{r Organize the data from above}
+tree$tip.label == rownames(specieslist)
+
+Csize <- as.data.frame(ind.Csize)
+tree$tip.label == rownames(Csize)
+
+specieslist$Csize <- Csize
+colnames(specieslist[,8]) <- "Csize"
+
+
+specList <- as.character(tree$tip.label)
+
+# take the thylacine out, as it is the 'variable' we want to check
+specieslistPruned <- specieslist[which(specieslist$Species != "cynocephalus"),]
+specieslistPruned <- droplevels(specieslistPruned)
+
+treePruned <- drop.tip(phy = tree, tip = "Thylacinus_cynocephalus")
+
+specListPruned <- specList[which(specList != "Thylacinus_cynocephalus")]
+```
+
+```{r Check gls model fits}
+
+# This is the regression without the 'variable' thylacine 
+fit1 <- gls(log10(Csize) ~ log10(Body_mass_g), 
+            data = specieslistPruned, 
+            correlation = corBrownian(value = 1, 
+                                      phy = treePruned,
+                                      form = ~specListPruned),
+            method = "ML")
+
+fit2 <- gls(log10(Csize) ~ log10(Body_mass_g), 
+            data = specieslistPruned, 
+            correlation = corPagel(value = 1, 
+                                      phy = treePruned, 
+                                      fixed = FALSE,
+                                      form = ~specListPruned),
+            method = "ML")
+
+anova(fit1, fit2)
+# fit2 model is best
+```
+```{r qq checks}
+plot(fit2, 
+     resid(., type = "n")~fitted(.),
+     main = "Normalized Residuals v Fitted Values",
+     abline = c(0,0), col = "black")
+res <- resid(fit2, type="n")
+qqnorm(res)
+qqline(res)
+
+# looks like Didelphis marsupialis is very much an outlier; we'll leave them in for the time being
+```
+
+```{r PGLS CI PI intervals}
+
+L = fit2$modelStruct$corStruct[1]
+
+# 95% confidence interval for the PGLS line
+
+csizeCI <- gls.ci(Y = log10(specieslistPruned$Csize), 
+                  X = log10(specieslistPruned$Body_mass_g), 
+                  Sigma = vcv(corPagel(value = L, 
+                                       phy = treePruned, 
+                                       fixed = TRUE, 
+                                       form = ~specListPruned)))
+
+# 95% prediction interval for the PGLS line
+
+csizePI <- gls.pi(Y = log10(specieslistPruned$Csize), 
+                  X = log10(specieslistPruned$Body_mass_g), 
+                  Sigma = vcv(corPagel(value = L, 
+                                       phy = treePruned, 
+                                       fixed = TRUE,
+                                       form = ~specListPruned)),
+                  k = 1)
+```
+
+
+```{r PGLS 2}
+# Run PGLS with the thylacine included
+fullFit1 <- gls(log10(Csize) ~ log10(Body_mass_g), 
+            data = specieslist, 
+            correlation = corBrownian(value = 1, 
+                                      phy = tree,
+                                      form = ~specList),
+            method = "ML")
+
+fullFit2 <- gls(log10(Csize) ~ log10(Body_mass_g), 
+            data = specieslist, 
+            correlation = corPagel(value = 1, 
+                                      phy = tree, 
+                                      fixed = FALSE,
+                                      form = ~specList),
+            method = "ML")
+
+anova(fullFit1, fullFit2)
+# fit2 model is best
+```
+
+
+```{r}
+ svglite(filename = here::here("Figures", "MarsupialOnly_Csize_Reg.svg"),
+         height = 5, width = 6)
+plot(NULL,
+     xlim = range(log10(specieslist$Body_mass_g)),
+     ylim = range(log10(specieslist$Csize)), 
+     xlab = "Log10 Body Mass (g)",                       
+     ylab = "Log10 Csize",  
+     main = "PGLS Regression")
+polygon(c(csizePI$PI.plot$X, rev (csizePI$PI.plot$X)), 
+        c(csizePI$PI.plot$Lower2.5, rev(csizePI$PI.plot$Upper2.5)), 
+        col = "#e5e5e5", 
+        border = NA )
+abline(a = fit2$coefficients[1], 
+       b = fit2$coefficients[2], 
+       lty = "solid",
+       lwd = 2, 
+       col = "black")
+abline(a = fullFit2$coefficients[1], 
+       b = fullFit2$coefficients[2], 
+       lty = "longdash",
+       lwd = 2, 
+       col = "red")
+lines(csizeCI$CI.plot$X, 
+      csizeCI$CI.plot$Lower2.5,
+      lty = 3)
+lines(csizeCI$CI.plot$X, 
+      csizeCI$CI.plot$Upper2.5,
+      lty = 3)
+points(y = log10(specieslist$Csize), x = log10(specieslist$Body_mass_g),
+              pch = 23,
+              col = "#000000",
+              bg = "#e0f0ff",
+              cex = 1.5,
+              xlab = "Log10 Body Mass (g)",                       
+              ylab = "Log10 Csize",                       
+              main = "PGLS")
+lines(x= c(3.5,log10(specieslist$Body_mass_g[which(specieslist$Species =="cynocephalus")])-0.02), 
+      y=c(2.6, log10(specieslist$Csize[which(specieslist$Species=="cynocephalus")])-0.02), 
+      lwd=1.5 )
+text(2.8, 2.6, 
+     "Thylacinus cynocephalus", 
+     font=3)
+lines(x= c(2.5,log10(specieslist$Body_mass_g[which(specieslist$Species =="marsupialis")])-0.02), 
+      y=c(2.3, log10(specieslist$Csize[which(specieslist$Species=="marsupialis")])-0.02), 
+      lwd=1.5 )
+text(1.9, 2.3, 
+     "Didelphis marsupialis", 
+     font=3)
+box(col = "black")
+ dev.off()
+```
+

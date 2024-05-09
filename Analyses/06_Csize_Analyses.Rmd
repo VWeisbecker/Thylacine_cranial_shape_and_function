@@ -1,0 +1,372 @@
+---
+title: "Centroid-Size_Analyses"
+author: "DSRovinsky"
+date: '2022-06-20'
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data
+```{r Load packages}
+library(geomorph) # CRAN v4.0.7
+library(ape)      # CRAN v5.8
+library(nlme)     # CRAN v3.1-164
+library(dplyr)    # CRAN v1.1.4
+library(here)     # CRAN v1.0.1
+library(geiger)   # CRAN v2.0.11
+library(svglite)  # CRAN v2.1.3
+```
+
+```{r Functions}
+source(here::here("Functions", "Fun.R"))
+```
+
+
+```{r Load and manipulate data}
+# Load GPA (created in "GMM_GPA.Rmd")
+load(here("Data", "Processed", "skullGPA.rda"))
+
+# Load phylogeny - this is the composite tree from Rovinsky et al., 2021, with the fossil taxa added
+# NB: Prothylacinus patagonicus is not included this tree
+rawTree <- read.tree(here::here("Data", "phyloGMM.tre"))
+
+# Load body mass (taken from Rovinsky et al., 2021 doi:10.1186/s12862-021-01788-8
+# Masses for Nimbacinus dicksoni, Borhyaena tuberata, & Prothylacinus patagonicus are mean values calculated using methods/values in: 
+# Myers 2001, Rovinsky et al., 2020, Engelman 2022 [Nimbacinus] 
+# Myers 2001, Argot 2003, Prevosti et al., 2013, Engelman 2022 [Borhyaena & Prothylacinus])
+rawMass <- read.csv(here::here("Data", "Body_mass.csv"))
+bodyMass <- rawMass[-(225),] # remove Prothylacinus patagonicus; we have no Csize
+
+# Load the labels (created in "GMM_GPA.Rmd")
+# NB: Prothylacinus patagonicus is not in this data file
+rawLabels <- readRDS(here("Data", "Processed", "pointLabels.rds"))
+pointLabels <- rawLabels[rawLabels$Taxon != "Andrewsarchus_mongoliensis",] # remove Andrewsarchus; we have no body mass
+
+phyTree <- drop.tip(rawTree, 1) # remove Andrewsarchus
+
+treeTips <- data.frame(Taxon = as.factor(phyTree$tip.label)) # pull out for easy matching
+
+meanLabels <- pointLabels %>%
+    distinct(Taxon, .keep_all = T)
+meanLabels <- droplevels(meanLabels)
+meanLabels <- meanLabels[order(match(meanLabels[,3],treeTips$Species)),]
+
+```
+
+
+```{r Gather centroid sizes}
+# pull out the Centroid size from the dataset
+
+Csize <- as.numeric(skullGPA$Csize[-1])
+meanSkullCsize <- aggregate(Csize, 
+                       by = list(pointLabels$Taxon), 
+                       FUN = mean) ##THIS IS NOW ALPHABETICAL
+rownames(meanSkullCsize) <- meanSkullCsize$Group.1
+colnames(meanSkullCsize) <- c("Taxon", "Csize")
+meanSkullCsize <- droplevels(meanSkullCsize)
+meanSkullCsize <- meanSkullCsize[order(match(meanSkullCsize[,1],treeTips$Taxon)),]
+
+
+```
+
+```{r Create dataframe}
+# Generate a data frame
+meanMass <- aggregate(bodyMass$Mean_Mass, 
+                       by = list(bodyMass$Species), 
+                       FUN = mean) ##THIS IS NOW ALPHABETICAL
+colnames(meanMass) <- c("Taxon", "Mass_g")
+meanMass <- meanMass[order(match(meanMass[,1],treeTips$Taxon)),]
+meanLabels <- meanLabels[order(match(meanLabels[,3],treeTips$Taxon)),]
+
+
+# gather it together for ease of access - use 'cbind.data.frame' to preserve data types!
+meanCsizeData <- cbind.data.frame(meanLabels$Clade,
+                                  meanLabels$Family,
+                                  meanSkullCsize$Taxon,
+                                  meanMass$Mass_g,
+                                  meanSkullCsize$Csize)
+colnames(meanCsizeData) <- c("Clade", "Family", "Taxon", "Mass_g", "Csize")
+
+name.check(phy = phyTree, 
+           data = meanCsizeData, 
+           data.names = meanCsizeData$Taxon)
+
+rm(Csize, bodyMass, meanMass, meanSkullCsize, skullGPA, meanLabels, pointLabels)
+```
+
+```{r PGLS data}
+# We want to run the regression first without the 'variable' we are trying to solve for, i.e., the thylacine. 
+# That way we can see how it fits into the predicted output, and then re-run the regression to see what effect
+# the thylacine would have on the regression line (e.g., does it have a strong pull on the regression line)
+dataPGLS <- meanCsizeData[which(meanCsizeData$Taxon != "Thylacinus_cynocephalus"),]
+dataPGLS <- droplevels(dataPGLS)
+
+treePGLS <- drop.tip(phy = phyTree, tip = "Thylacinus_cynocephalus")
+specList <- as.character(treePGLS$tip.label)
+```
+
+
+```{r PGLS regression}
+# phylogeny includes fossils (is not ultrametric) so we need to add weights
+tW <- diag(vcv(treePGLS)) # tree weights
+
+# model fits
+fit1 <- gls(log10(Csize) ~ log10(Mass_g), 
+               data = dataPGLS, 
+               correlation = corBrownian(value = 1, 
+                                      phy = treePGLS,
+                                      form = ~specList),
+               method = "ML",
+               weights = varFixed(~tW))
+
+fit2 <- gls(log10(Csize) ~ log10(Mass_g), 
+               data = dataPGLS, 
+               correlation = corPagel(value = 1, 
+                                      phy = treePGLS, 
+                                      fixed = FALSE,
+                                      form = ~specList),
+               method = "ML",
+               weights = varFixed(~tW))
+
+fit3 <- gls(log10(Csize) ~ log10(Mass_g), 
+               data = dataPGLS, 
+               correlation = corBrownian(value = 1, 
+                                      phy = treePGLS,
+                                      form = ~specList),
+               method = "REML",
+               weights = varFixed(~tW))
+
+fit4 <- gls(log10(Csize) ~ log10(Mass_g), 
+               data = dataPGLS, 
+               correlation = corPagel(value = 1, 
+                                      phy = treePGLS, 
+                                      fixed = FALSE,
+                                      form = ~specList),
+               method = "REML",
+               weights = varFixed(~tW))
+
+anova(fit1, fit2)
+anova(fit3, fit4)
+# fit2 is a better model choice (lower AIC, BIC, higher logLik), let's plot the residuals to visually check
+
+plot(fit2, 
+     resid(., type = "n")~fitted(.),
+     main = "Normalized Residuals v Fitted Values",
+     abline = c(0,0), col = "black")
+res <- resid(fit2, type="n")
+qqnorm(res)
+qqline(res)
+
+```
+
+
+```{r PGLS CI PI intervals}
+csizePGLS <- fit2 #this is the PGLS regression without the thylacine
+rm(fit1, fit2, fit3, fit4)
+
+L = csizePGLS$modelStruct$corStruct[1]
+# 95% confidence interval for the PGLS line
+
+csizeCI <- gls.ci(Y = log10(dataPGLS$Csize), 
+                  X = log10(dataPGLS$Mass_g), 
+                  Sigma = vcv(corPagel(value = L, 
+                                       phy = treePGLS, 
+                                       fixed = TRUE, 
+                                       form = ~specList)))
+
+# 95% prediction interval for the PGLS line
+
+csizePI <- gls.pi(Y = log10(dataPGLS$Csize), 
+                  X = log10(dataPGLS$Mass_g), 
+                  Sigma = vcv(corPagel(value = L, 
+                                       phy = treePGLS, 
+                                       fixed = TRUE,
+                                       form = ~specList)),
+                  k = 1)
+```
+
+```{r Full PGLS}
+# Now we re-run the regression with the thylacine included
+specList2 <- as.character(phyTree$tip.label)
+tWFull <- diag(vcv(phyTree)) 
+fullPGLS <- gls(log10(Csize) ~ log10(Mass_g), 
+               data = meanCsizeData, 
+               correlation = corPagel(value = 1, 
+                                      phy = phyTree, 
+                                      fixed = FALSE,
+                                      form = ~specList2),
+               method = "ML",
+               weights = varFixed(~tWFull))
+```
+
+
+
+```{r Plot set up}
+# map points for plotting
+plotData <- cbind.data.frame(meanCsizeData, fullPGLS$residuals)
+names(plotData)[6] <- "Residuals"
+
+
+plotData <- plotData[order(plotData$Residuals),]
+plotData$xNum <- 1:nrow(plotData)
+
+plotData$StemCol <- "#cccccc"
+
+plotData$PtCol <- "#fff0e0"
+plotData$PtCol[plotData$Family == "Canidae"] <- "#ffaa5c"
+plotData$PtCol[plotData$Taxon == "Canis_lupus"] <- "#233045" #just to see position
+plotData$PtCol[plotData$Clade == "Metatheria"] <- "#e0f0ff"
+plotData$PtCol[plotData$Family == "Thylacinidae"] <- "#c87ef8"
+
+plotData$PtSet <- 21
+plotData$PtSet[plotData$Clade == "Metatheria"] <- 23
+
+# For publication, we'll change those 'position' colours back to their clade colours and use text call-outs
+```
+
+
+```{r PGLS residual plot}
+svglite(filename = here::here("Figures", "Csize_Resids.svg"),
+        height = 5, width = 6)
+range(plotData$Residuals) # -0.1710360  0.1017483
+plot(NULL,
+     xlim = c(0,60), # just a little more so the plot is nice and roomy
+     ylim = c(-0.18, 0.12), # just a little larger so the plot is nice and roomy
+     xlab = "Species",                       
+     ylab = "log10 Csize ~ log10 Mass(g) Residuals",  
+     xaxt = "n",
+     main = "PGLS Residuals")
+abline(h = 0, col = "#808080", lwd = 0.5, lty = "dotted")
+arrows(x0 = plotData$xNum, x1 = plotData$xNum,
+       y0 = 0, y1 = plotData$Residuals, # give the axis a little breathing room at y0
+       code = 3, length = 0, lwd = 2,
+       col = plotData$StemCol)
+points(plotData$Residuals,
+     pch = plotData$PtSet,
+     col = "#000000",
+     bg = plotData$PtCol,
+     cex = 2)
+legend("topleft", 
+       legend = c("Placentals", "Canids", "Marsupials",  "Thylacinids"), 
+       pch = c(21, 21, 23, 23),
+       col = "#000000",
+       pt.bg = c("#f0eef0", "#ffaa5c", "#e0f0ff", "#c87cf8"),
+       bty = "n", 
+       pt.cex = 2, 
+       cex = 0.8, 
+       text.col = "black", 
+       horiz = F , 
+       inset = c(0.01, 0.0))
+ dev.off()
+```
+```{r PGLS Regression plot}
+svglite(filename = here::here("Figures", "Csize_Regression.svg"),
+        height = 5, width = 6)
+plot(NULL,
+     xlim = range(log10(plotData$Mass_g)), 
+     ylim = range(log10(plotData$Csize)), 
+     xlab = "Body Mass (Log10 g)",                       
+     ylab = "Log10 Centroid size",  
+     main = "Csize PGLS Regression")
+polygon(c(csizePI$PI.plot$X, rev (csizePI$PI.plot$X)), 
+        c(csizePI$PI.plot$Lower2.5, rev(csizePI$PI.plot$Upper2.5)), 
+        col = "#e5e5e5", 
+        border = NA )
+lines(csizeCI$CI.plot$X, 
+      csizeCI$CI.plot$Lower2.5,
+      lty = 3)
+lines(csizeCI$CI.plot$X, 
+      csizeCI$CI.plot$Upper2.5,
+      lty = 3)
+abline(a = csizePGLS$coefficients[1], 
+       b = csizePGLS$coefficients[2], 
+       lty = "solid",
+       lwd = 2, 
+       col = "black")
+abline(a = fullPGLS$coefficients[1], 
+       b = fullPGLS$coefficients[2], 
+       lty = "longdash",
+       lwd = 2, 
+       col = "red")
+points(log10(plotData$Csize) ~ log10(plotData$Mass_g),
+              pch = plotData$PtSet,
+              col = "#000000",
+              bg = plotData$PtCol,
+              cex = 1.5,
+              xlab = "Body Mass (Log10 g)",                       
+              ylab = "Log10 Centroid size",                       
+              main = "Total set Csize")
+legend("topleft", 
+       legend = c("Placentals", "Canids", "Marsupials",  "Thylacinids"), 
+       pch = c(21, 21, 23, 23),
+       col = "#000000",
+       pt.bg = c("#f0eef0", "#ffaa5c","#e0f0ff", "#c87cf8"),
+       bty = "n", 
+       pt.cex = 2, 
+       cex = 0.8, 
+       text.col = "black", 
+       horiz = F , 
+       inset = c(0.01, 0.0))
+box(col = "#000000")
+ dev.off()
+```
+
+
+# Stripcharts
+These are a quick way to visualise where the thylacine fits size-wise 
+
+```{r}
+plotData$Strip <- 1
+
+# Hexcodes can have two digits appended; these last two are the transparency 
+# from 00 (transparent) to ff (opaque)
+# handy values are: 25%=40 33%=54 50%=80 66%=a8 75%=bf
+plotData$AlphaCol <- "#fff0e054" 
+plotData$AlphaCol[plotData$Family == "Canidae"] <- "#ffaa5c54"
+plotData$AlphaCol[plotData$Clade == "Metatheria"] <- "#e0f0ff54"
+plotData$AlphaCol[plotData$Family == "Thylacinidae"] <- "#c87ef8"
+
+# These are the species found to be closest to the thylacine 
+# in Procrustes shape in "Procrustes_Analyses.Rmd" 
+plotData$AlphaCol[plotData$Taxon == "Canis_dingo"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Canis_lupus"] <- "#233045"
+plotData$AlphaCol[plotData$Taxon == "Chrysocyon_brachyurus"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Nimbacinus_dicksoni"] <- "#c87ef8"
+plotData$AlphaCol[plotData$Taxon == "Canis_aureus"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Canis_latrans"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Canis_lupaster"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Canis_simensis"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Dasyurus_geoffroii"] <- "#e0f0ff"
+plotData$AlphaCol[plotData$Taxon == "Dasyurus_maculatus"] <- "#e0f0ff"
+plotData$AlphaCol[plotData$Taxon == "Dasyurus_viverrinus"] <- "#e0f0ff"
+plotData$AlphaCol[plotData$Taxon == "Didelphis_marsupialis"] <- "#e0f0ff"
+plotData$AlphaCol[plotData$Taxon == "Lupulella_adusta"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Lupulella_mesomelas"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Lycalopex_culpaeus"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Lycalopex_gymnocercus"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Vulpes_lagopus"] <- "#ffaa5c"
+plotData$AlphaCol[plotData$Taxon == "Vulpes_vulpes"] <- "#ffaa5c"
+
+
+```
+
+```{r}
+svglite(filename = here::here("Figures", "Csize_Stripchart.svg"),
+        pointsize = 6, height = 3.5, width = 3.5)
+plot(NULL,
+     xlim = c(0,2), # so the plot is nice and roomy
+     ylim = range(plotData$Csize),
+     xlab = "Index",                       
+     ylab = "Centroid size", )
+points(plotData$Csize ~ jitter(plotData$Strip, 5),
+           pch = plotData$PtSet,
+           col = "#000000",
+           bg = plotData$AlphaCol,
+           cex = 3, ylab = "Centroid Size")
+ dev.off()
+```

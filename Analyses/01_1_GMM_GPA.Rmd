@@ -1,0 +1,322 @@
+---
+title: "GMM_GPA"
+author: "DSRovinsky"
+date: "2023-05-24"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load packages}
+library(geomorph) # CRAN v4.0.7
+library(shapes)   # CRAN v1.2.7
+library(dplyr)    # CRAN v1.1.4
+library(here)     # CRAN v1.0.1
+```
+
+```{r Read data}
+rawPoints <- read.morphologika(here::here("Data", "BWT_ABN_lmks.txt"))
+lmkPairs <- read.csv(here::here("Data", "LmkPairs_adj.csv"))
+lmkSets <- read.csv(here("Data", "Sets_Newtonetal2021.csv"))
+
+ save(... = rawPoints, file = here("Data", "Processed", "rawPoints.rda"))
+
+# Gather labels for plotting etc.
+pointLabels <- as.data.frame(rawPoints$labels)
+pointLabels <- pointLabels %>% mutate_if(is.character, as.factor)
+colnames(pointLabels)[3] <- "Taxon"
+
+ saveRDS(pointLabels, here("Data", "Processed", "pointLabels.rds")) # save for other analyses
+
+# # Future reference just in case you wanna save as .rda; for some reason save() requires more hand-holding
+ save(... = pointLabels, file = here("Data", "Processed", "pointLabels.rda")) 
+```
+
+```{r lmk pair sets}
+skullPairs <- lmkPairs[,1:2]
+rostralPairs <- na.omit(lmkPairs[,3:4])
+colnames(rostralPairs) <- c("L","R")
+
+neuroPairs <- na.omit(lmkPairs[,5:6])
+colnames(neuroPairs) <- c("L","R")
+
+fnpPairs <- na.omit(lmkPairs[,7:8])
+colnames(fnpPairs) <- c("L","R")
+
+paPairs <- na.omit(lmkPairs[,9:10])
+colnames(paPairs) <- c("L","R")
+
+mesPairs <- na.omit(lmkPairs[,11:12])
+colnames(mesPairs) <- c("L","R")
+```
+
+
+#### Skull
+```{r GPA}
+# nifty little if/else statement from Vera to keep her from having to sit around 
+# and wait while the GPA runs each time she wants to play with the code
+# This has been slightly modified to fit in the here() environment. Original from Vera is commented out below
+
+if(!("skullGPA.rda" %in% list.files(here("Data", "Processed")))) {
+
+    skullGPA <- gpagen(rawPoints$coords)
+
+  save(... = skullGPA, file = here("Data", "Processed", "skullGPA.rda"))
+  
+  } else{
+    
+  load(file = here("Data", "Processed", "skullGPA.rda"))
+    
+       }
+
+
+```
+
+```{r Bilateral symmetry}
+skullCsize <- as.matrix(skullGPA$Csize)
+indSkull <- as.vector(row.names(skullCsize))
+
+
+skullGDF <- geomorph.data.frame(shape = skullGPA$coords, ind = indSkull)
+
+skullLmkSymm <- bilat.symmetry(A = skullGPA,
+                              ind = indSkull,
+                              object.sym = TRUE,
+                              land.pairs = skullPairs,
+                              data = skullGDF,
+                              RRPP = TRUE,
+                              iter = 999)
+```
+
+```{r}
+ save(skullLmkSymm, skullCsize, file = here("Data", "Processed", "skullLmkSymm.rda"))
+```
+
+#### Rostrum
+```{r Gather lmks}
+rostralLMKS <- rawPoints$coords[c(1:29, 47:109, 229:300, 373:381),,]
+```
+
+```{r GPA}
+if(!("rostralGPA.rda" %in% list.files(here("Data", "Processed")))) {
+
+    rostralGPA <- gpagen(rostralLMKS)
+
+  save(... = rostralGPA, file = here("Data", "Processed", "rostralGPA.rda"))
+  
+  } else{
+    
+  load(file = here("Data", "Processed", "rostralGPA.rda"))
+    
+       }
+```
+
+```{r Bilateral symmetry}
+rostralCsize <- as.matrix(rostralGPA$Csize)
+indSkull <- as.vector(row.names(rostralCsize))
+
+
+rostralGDF <- geomorph.data.frame(shape = rostralGPA$coords, ind = indSkull)
+
+rostralLmkSymm <- bilat.symmetry(A = rostralGPA,
+                              ind = indSkull,
+                              object.sym = TRUE,
+                              land.pairs = rostralPairs,
+                              data = rostralGDF,
+                              RRPP = TRUE,
+                              iter = 999)
+```
+
+```{r}
+save(rostralLmkSymm, rostralCsize, file = here("Data", "Processed", "rostralLmkSymm.rda"))
+```
+
+
+
+#### Neurocranium
+```{r gather lmks}
+neuroLMKS <- rawPoints$coords[c(22:23, 32:34, 37:46, 168:228, 301:372),,]
+```
+
+```{r GPA}
+if(!("neuroGPA.rda" %in% list.files(here("Data", "Processed")))) {
+
+    neuroGPA <- gpagen(neuroLMKS)
+
+  save(... = neuroGPA, file = here("Data", "Processed", "neuroGPA.rda"))
+  
+  } else{
+    
+  load(file = here("Data", "Processed", "neuroGPA.rda"))
+    
+       }
+```
+
+```{r Bilateral symmetry}
+neuroCsize <- as.matrix(neuroGPA$Csize)
+indSkull <- as.vector(row.names(neuroCsize))
+
+
+neuroGDF <- geomorph.data.frame(shape = neuroGPA$coords, ind = indSkull)
+
+neuroLmkSymm <- bilat.symmetry(A = neuroGPA,
+                              ind = indSkull,
+                              object.sym = TRUE,
+                              land.pairs = neuroPairs,
+                              data = neuroGDF,
+                              RRPP = TRUE,
+                              iter = 999)
+```
+
+```{r}
+ save(neuroLmkSymm, neuroCsize, file = here("Data", "Processed", "neuroLmkSymm.rda"))
+```
+
+### Developmental Section
+
+```{r}
+
+FNP <- na.omit(as.numeric(lmkSets$FNP))
+PA <- na.omit(as.numeric(lmkSets$PA))
+MES <- na.omit(as.numeric(lmkSets$MES))
+```
+
+
+#### FNP
+```{r gather lmks}
+lmkFNP <- rawPoints$coords[FNP,,]
+```
+
+```{r GPA}
+if(!("fnpGPA.rda" %in% list.files(here("Data", "Processed")))) {
+
+    fnpGPA <- gpagen(lmkFNP)
+
+  save(... = fnpGPA, file = here("Data", "Processed", "fnpGPA.rda"))
+  
+  } else{
+    
+  load(file = here("Data", "Processed", "fnpGPA.rda"))
+    
+       }
+```
+
+```{r Bilateral symmetry}
+fnpCsize <- as.matrix(fnpGPA$Csize)
+indSkull <- as.vector(row.names(fnpCsize))
+
+
+fnpGDF <- geomorph.data.frame(shape = fnpGPA$coords, ind = indSkull)
+
+fnpLmkSymm <- bilat.symmetry(A = fnpGPA,
+                              ind = indSkull,
+                              object.sym = TRUE,
+                              land.pairs = fnpPairs,
+                              data = fnpGDF,
+                              RRPP = TRUE,
+                              iter = 999)
+```
+
+```{r Just checking}
+ # spheres3d(fnpLmkSymm$symm.shape[,,"Cuon_alpinus_56621"],
+ #           radius = 0.005,
+ #           color= "black")
+```
+
+```{r}
+ save(fnpLmkSymm, fnpCsize, file = here("Data", "Processed", "fnpLmkSymm.rda"))
+```
+
+#### PA
+```{r gather lmks}
+lmkPA <- rawPoints$coords[PA,,]
+```
+
+```{r GPA}
+if(!("paGPA.rda" %in% list.files(here("Data", "Processed")))) {
+
+    paGPA <- gpagen(lmkPA)
+
+  save(... = paGPA, file = here("Data", "Processed", "paGPA.rda"))
+  
+  } else{
+    
+  load(file = here("Data", "Processed", "paGPA.rda"))
+    
+       }
+```
+
+```{r Bilateral symmetry}
+paCsize <- as.matrix(paGPA$Csize)
+indSkull <- as.vector(row.names(paCsize))
+
+
+paGDF <- geomorph.data.frame(shape = paGPA$coords, ind = indSkull)
+
+paLmkSymm <- bilat.symmetry(A = paGPA,
+                              ind = indSkull,
+                              object.sym = TRUE,
+                              land.pairs = paPairs,
+                              data = paGDF,
+                              RRPP = TRUE,
+                              iter = 999)
+```
+
+```{r Check}
+# spheres3d(paLmkSymm$symm.shape[,,"Cuon_alpinus_56621"],
+#           radius = 0.003,
+#           color= "black")
+```
+
+```{r}
+ save(paLmkSymm, paCsize, file = here("Data", "Processed", "paLmkSymm.rda"))
+```
+
+#### MES
+```{r gather lmks}
+lmkMES <- rawPoints$coords[MES,,]
+```
+
+```{r GPA}
+if(!("mesGPA.rda" %in% list.files(here("Data", "Processed")))) {
+
+    mesGPA <- gpagen(lmkMES)
+
+  save(... = mesGPA, file = here("Data", "Processed", "mesGPA.rda"))
+  
+  } else{
+    
+  load(file = here("Data", "Processed", "mesGPA.rda"))
+    
+       }
+```
+
+```{r Bilateral symmetry}
+mesCsize <- as.matrix(mesGPA$Csize)
+indSkull <- as.vector(row.names(mesCsize))
+
+
+mesGDF <- geomorph.data.frame(shape = mesGPA$coords, ind = indSkull)
+
+mesLmkSymm <- bilat.symmetry(A = mesGPA,
+                              ind = indSkull,
+                              object.sym = TRUE,
+                              land.pairs = mesPairs,
+                              data = mesGDF,
+                              RRPP = TRUE,
+                              iter = 999)
+```
+
+```{r Check}
+# spheres3d(mesLmkSymm$symm.shape[,,"Cuon_alpinus_56621"],
+#           radius = 0.003,
+#           color= "black")
+```
+
+```{r}
+save(mesLmkSymm, mesCsize, file = here("Data", "Processed", "mesLmkSymm.rda"))
+```

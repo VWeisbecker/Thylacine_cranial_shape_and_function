@@ -1,0 +1,589 @@
+---
+title: "Cranial metrics: Thylacine, Wolf, & Dingo"
+author: "DSRovinsky"
+date: '2022-06-07'
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+# Manipulate data
+```{r Load packages}
+library(smatr)   # CRAN v3.4-8
+library(svglite) # CRAN v2.1.3
+library(here)    # CRAN v1.0.1
+```
+
+```{r Functions}
+source(here::here("Functions", "Fun.R"))
+```
+
+
+```{r Load data}
+# representative canids: wolf, dog, 'jackals', 'foxes'
+linMtrxData <- read.csv(here::here("Data", "Thylacine_Canis.csv"))
+# calculate geometric mean in new column
+linMtrxData$Gmean <- apply(linMtrxData[,c(4:12)], 1, prod)^(1/9) # apply to cols 4:12, by row, product, then raise to 1/n power
+
+dataSub <- linMtrxData
+
+```
+
+
+# Check for normality and linearity
+Generate simple linear models, and check their diagnostic plots and their residuals. 
+This will help us see if the data can be investigated by linear model
+```{r Linear models}
+# Generate simple linear models & check their diagnostic plots
+model.ZB <- lm(ZB ~ Gmean * Species, data = dataSub)
+model.CB <- lm(CB ~ Gmean * Species, data = dataSub)
+model.PL <- lm(PL ~ Gmean * Species, data = dataSub)
+model.CARN <- lm(CARN ~ Gmean * Species, data = dataSub)
+model.OCW <- lm(OCW ~ Gmean * Species, data = dataSub)
+```
+
+Diagnostic plot overviews
+
+Residuals vs Fitted: 
+Should be random scatter along a roughly straight, horizontal line
+
+Normal Q-Q: 
+Should be a roughly straight line running diagonally bottom-left to top-right. 
+You don't want to see obvious directional curving to the data (e.g., an 'exponential' curve in either direction indicates skew to the data), and you don't want to see an obvious step-stone appearance or large 'humps', which indicates bimodality or uneven distribution.
+
+Scale-Location:
+Like with the Residuals vs. Fitted plot, you want to see a random scatter along a roughly horizontal line. Strong curving or bowing is right out, and you should be angry with your data.
+
+Residuals vs. Leverage
+You are checking here for outliers that are having an undue effect (high leverage) on the model. These will be outside of Cook's Distance.
+If your line is roughly horizontal, and all your data are within Cook's Distance, you can proceed.
+
+```{r Zygomatic lm}
+par(mfrow = c(2, 2))
+plot(model.ZB) 
+# ridiculously normal, with some very light tails
+```
+
+```{r Rostral width lm}
+par(mfrow = c(2, 2))
+plot(model.CB)
+# Blue-ribbon normal
+```
+
+```{r Palate length lm}
+par(mfrow = c(2, 2))
+plot(model.PL)
+# A+ gold star beautiful
+```
+
+```{r Facial width lm}
+par(mfrow = c(2, 2))
+plot(model.CARN)
+# got some very slight skew to the tails but still sticky-sweet basic normal
+```
+
+```{r Occipital condyle width lm}
+par(mfrow = c(2, 2))
+plot(model.OCW)
+# some clustering here, but Q-Q and leverage looks good, with ~horizontal lines throughout all. 
+
+```
+
+
+# Regressions
+REDUCED MAJOR AXIS REGRESSIONS
+Using reduced major axis (RMA - in the smatr package called "SMA" [standardised major axis]) regression here, 
+as the dependent & independent data 
+1: have ~equal error variance, 
+2: are ~bivariate normal, 
+3: are not homogeneous in physical unit, 
+and
+4: we are attempting to understand and test the parameters of the relationship between the variables,
+5: we are not regressing a variable on another in order to estimate or predict values of the dependent variable (in which case you'd want to use good ol' fashioned OLS regression!).
+
+Gotta log-transform the data for RMA regressions, though; just to be sure.
+
+COMMON SLOPE
+Let's test to see if the species share a common slope with each other, with respect to each of the variables.
+
+```{r}
+rm(model.CARN, model.CB, model.OCW, model.PL, model.ZB) # clean environment
+```
+
+
+```{r Common slope tests}
+# multcomp returns pair-wise tests between groupings (Species)
+# multcompmethod = "default" does NOT adjust the p-values for multiple comparisons; we will use the Benjamini-Hochberg function for that
+slope.CARN <- sma(log10(CARN) ~ log10(Gmean) * Species, 
+                  data = dataSub, 
+                  multcomp = T, 
+                  multcompmethod = "default")
+slope.CB <- sma(log10(CB) ~ log10(Gmean) * Species, 
+                data = dataSub, 
+                multcomp = T, 
+                multcompmethod = "default") 
+slope.OCW <- sma(log10(OCW) ~ log10(Gmean) * Species, 
+                 data = dataSub, 
+                 multcomp = T, 
+                 multcompmethod = "default")
+slope.PL <- sma(log10(PL) ~ log10(Gmean) * Species, 
+                data = dataSub, 
+                multcomp = T, 
+                multcompmethod = "default") 
+slope.ZB <- sma(log10(ZB) ~ log10(Gmean) * Species, 
+                data = dataSub, 
+                multcomp = T, 
+                multcompmethod = "default") 
+```
+
+```{r slope.CARN summary}
+# Benjamini-Hochberg procedure. benj.hoch(x, a); function(x, a) where x = pvals, a = FDR
+pvals <- slope.CARN$multcompresult$Pval
+slope.CARNcorr <- benj.hoch(pvals, 0.1) 
+# Benjamini-Hochberg significant results
+slope.CARNH0Rejects <- slope.CARN$multcompresult[c(slope.CARNcorr$`H0 reject` ),]
+#rm(slope.CARNcorr) # don't need anymore, but you can keep it around if you want
+
+# SMA pair-wise results table
+slopePW.CARN <- multcompmatrix(slope.CARN)
+
+```
+
+
+```{r slope.CB summary}
+# Benjamini-Hochberg procedure. function(x, a) where x = pvals, a = FDR
+pvals <- slope.CB$multcompresult$Pval
+slope.CBcorr <- benj.hoch(pvals, 0.1) 
+# Benjamini-Hochberg significant results
+slope.CBH0Rejects <- slope.CB$multcompresult[c(slope.CBcorr$`H0 reject` ),]
+#rm(slope.CBcorr) # don't need anymore, but you can keep it around if you want
+
+# SMA pair-wise results table
+slopePW.CB <- multcompmatrix(slope.CB)
+
+```
+
+
+```{r slope.OCW summary}
+# Benjamini-Hochberg procedure. function(x, a) where x = pvals, a = FDR
+pvals <- slope.OCW$multcompresult$Pval
+slope.OCWcorr <- benj.hoch(pvals, 0.1) 
+# Benjamini-Hochberg significant results
+slope.OCWH0Rejects <- slope.OCW$multcompresult[c(slope.OCWcorr$`H0 reject` ),] 
+#rm(slope.OCWcorr) # don't need anymore, but you can keep it around if you want
+
+# SMA pair-wise results table
+slopePW.OCW <- multcompmatrix(slope.OCW)
+
+```
+
+
+```{r slope.PL summary}
+# Benjamini-Hochberg procedure. function(x, a) where x = pvals, a = FDR
+pvals <- slope.PL$multcompresult$Pval
+slope.PLcorr <- benj.hoch(pvals, 0.1) 
+# Benjamini-Hochberg significant results
+slope.PLH0Rejects <- slope.PL$multcompresult[c(slope.PLcorr$`H0 reject` ),] 
+#rm(slope.PLcorr) # don't need anymore, but you can keep it around if you want
+
+# SMA pair-wise results table
+slopePW.PL <- multcompmatrix(slope.PL)
+
+```
+
+
+```{r slope.ZB summary}
+# Benjamini-Hochberg procedure. function(x, a) where x = pvals, a = FDR
+pvals <- slope.ZB$multcompresult$Pval
+slope.ZBcorr <- benj.hoch(pvals, 0.1) 
+# Benjamini-Hochberg significant results
+slope.ZBH0Rejects <- slope.ZB$multcompresult[c(slope.ZBcorr$`H0 reject` ),] 
+#rm(slope.ZBcorr) # don't need anymore, but you can keep it around if you want
+
+# SMA pair-wise results table
+slopePW.ZB <- multcompmatrix(slope.ZB)
+
+
+```
+
+#Make table of slope difference summaries, with empty rows in between so we don't get confused with what is what: 
+
+```{r}
+
+linear_slope_table <- rbind(c("Width across carnassials","","","","","",""),
+      slope.CARNH0Rejects,
+      c("Width across canines","","","","","",""), 
+      slope.CBH0Rejects,
+      c("Occipital condyle width","","","","","",""),
+      slope.OCWH0Rejects,
+      c("Palate length","","","","","",""), 
+      slope.PLH0Rejects, 
+     c("Width across zygomatic arches","","","","","",""),
+      slope.ZBH0Rejects)
+
+write.csv(linear_slope_table, file=here::here("Figures" ,"linear_slope_table.csv"))
+
+
+
+
+```
+
+```{r slope regression summaries}
+slopeSummary <- data.frame(matrix(ncol = 3, nrow = 5))
+colnames(slopeSummary) <- c("p-Value", "Lh_Ratio", "df")
+rownames(slopeSummary) <- c("CARN", "CB", "OCW", "PL", "ZB")
+slopeSummary["CARN",] <- c(slope.CARN$commoncoef$p, slope.CARN$commoncoef$LR, slope.CARN$commoncoef$df)
+slopeSummary["CB",] <- c(slope.CB$commoncoef$p, slope.CB$commoncoef$LR, slope.CB$commoncoef$df)
+slopeSummary["OCW",] <- c(slope.OCW$commoncoef$p, slope.OCW$commoncoef$LR, slope.OCW$commoncoef$df)
+slopeSummary["PL",] <- c(slope.PL$commoncoef$p, slope.PL$commoncoef$LR, slope.PL$commoncoef$df)
+slopeSummary["ZB",] <- c(slope.ZB$commoncoef$p, slope.ZB$commoncoef$LR, slope.ZB$commoncoef$df)
+slopeSummary$H0 <- "No_diff"
+slopeSummary$H0[slopeSummary$`p-Value` < 0.05] <- "REJECT"
+```
+
+
+COMMON ELEVATION
+Test to see if the species share a common elevation. 
+This is really only relevant for those that statistically share a common slope (i.e., PL~), but let's get the results for all of them, since we can't just /say/ that they don't share a common elevation.
+```{r Common elevation tests}
+elevation.CARN <- sma(CARN ~ Gmean + Species,
+                      type = "elevation",
+                      data = dataSub,
+                      multcomp = T,
+                      multcompmethod = "default")
+elevation.CB <- sma(CB ~ Gmean + Species,
+                    type = "elevation",
+                    data = dataSub,
+                      multcomp = T,
+                      multcompmethod = "default") 
+elevation.OCW <- sma(OCW ~ Gmean + Species, type = "elevation",
+                     data = dataSub,
+                     multcomp = T,
+                     multcompmethod = "default")
+elevation.PL <- sma(PL ~ Gmean + Species, type = "elevation",
+                    data = dataSub,
+                    multcomp = T,
+                    multcompmethod = "default")
+elevation.ZB <- sma(ZB ~ Gmean + Species,
+                    type = "elevation",
+                    data = dataSub,
+                    multcomp = T,
+                    multcompmethod = "default") 
+```
+
+```{r elevation.CARN summary}
+# Benjamini-Hochberg procedure. function(x, a) where x = pvals, a = FDR
+pvals <- elevation.CARN$multcompresult$Pval
+elevation.CARNcorr <- benj.hoch(pvals, 0.1) 
+
+#Here we remove species pairs that have already been shown to have significant slope differences. 
+elevation.CARNcorr$`H0 reject` <- elevation.CARNcorr$`H0 reject`[-which(elevation.CARNcorr$`H0 reject` %in% slope.CARNcorr$`H0 reject`)]
+elevation.CARNcorr$`Significant p-values`<- elevation.CARNcorr$`Significant p-values`[-which(elevation.CARNcorr$`H0 reject` %in% slope.CARNcorr$`H0 reject`)]
+
+# Benjamini-Hochberg significant results after taking out significant interactions
+elevation.CARNH0Rejects <- elevation.CARN$multcompresult[elevation.CARNcorr$`H0 reject`,] 
+
+
+#rm(elevation.CARNcorr) # don't need anymore, but you can keep it around if you want
+
+# SMA pair-wise results table
+elevationPW.CARN <- multcompmatrix(elevation.CARN)
+
+
+```
+
+
+```{r elevation.CB summary}
+# Benjamini-Hochberg procedure. function(x, a) where x = pvals, a = FDR
+pvals <- elevation.CB$multcompresult$Pval
+elevation.CBcorr <- benj.hoch(pvals, 0.1) 
+
+
+#Here we remove species pairs that have already been shown to have significant slope differences. 
+elevation.CBcorr$`H0 reject` <- elevation.CBcorr$`H0 reject`[-which(elevation.CBcorr$`H0 reject` %in% slope.CBcorr$`H0 reject`)]
+elevation.CBcorr$`Significant p-values`<- elevation.CBcorr$`Significant p-values`[-which(elevation.CBcorr$`H0 reject` %in% slope.CBcorr$`H0 reject`)]
+
+# Benjamini-Hochberg significant results
+elevation.CBH0Rejects <- elevation.CB$multcompresult[c(elevation.CBcorr$`H0 reject` ),] 
+#rm(elevation.CBcorr) # don't need anymore, but you can keep it around if you want
+
+# SMA pair-wise results table
+elevationPW.CB <- multcompmatrix(elevation.CB)
+
+
+```
+
+
+
+```{r elevation.OCW summary}
+# Benjamini-Hochberg procedure. function(x, a) where x = pvals, a = FDR
+pvals <- elevation.OCW$multcompresult$Pval
+elevation.OCWcorr <- benj.hoch(pvals, 0.1) 
+
+#Here we remove species pairs that have already been shown to have significant slope differences. 
+elevation.OCWcorr$`H0 reject` <- elevation.OCWcorr$`H0 reject`[-which(elevation.OCWcorr$`H0 reject` %in% slope.OCWcorr$`H0 reject`)]
+elevation.OCWcorr$`Significant p-values`<- elevation.OCWcorr$`Significant p-values`[-which(elevation.OCWcorr$`H0 reject` %in% slope.OCWcorr$`H0 reject`)]
+
+# Benjamini-Hochberg significant results
+elevation.OCWH0Rejects <- elevation.OCW$multcompresult[c(elevation.OCWcorr$`H0 reject` ),] 
+#rm(elevation.OCWcorr) # don't need anymore, but you can keep it around if you want
+
+# SMA pair-wise results table
+elevationPW.OCW <- multcompmatrix(elevation.OCW)
+
+
+```
+
+
+```{r elevation.PL summary}
+# Benjamini-Hochberg procedure. function(x, a) where x = pvals, a = FDR
+pvals <- elevation.PL$multcompresult$Pval
+elevation.PLcorr <- benj.hoch(pvals, 0.1) 
+
+#Here we  don't have any species pairs to remove that have already been shown to have significant slope differences. 
+elevation.PLcorr$`H0 reject` <- elevation.PLcorr$`H0 reject`
+elevation.PLcorr$`Significant p-values`<- elevation.PLcorr$`Significant p-values`
+
+
+# Benjamini-Hochberg significant results
+elevation.PLH0Rejects <- elevation.PL$multcompresult[c(elevation.PLcorr$`H0 reject` ),] 
+#rm(elevation.PLcorr) # don't need anymore, but you can keep it around if you want
+
+# SMA pair-wise results table
+elevationPW.PL <- multcompmatrix(elevation.PL)
+
+```
+
+
+```{r elevation.ZB summary}
+# Benjamini-Hochberg procedure. function(x, a) where x = pvals, a = FDR
+pvals <- elevation.ZB$multcompresult$Pval
+elevation.ZBcorr <- benj.hoch(pvals, 0.1)
+
+#Here we remove species pairs that have already been shown to have significant slope differences. 
+elevation.ZBcorr$`H0 reject` <- elevation.ZBcorr$`H0 reject`[-which(elevation.ZBcorr$`H0 reject` %in% slope.ZBcorr$`H0 reject`)]
+elevation.ZBcorr$`Significant p-values`<- elevation.ZBcorr$`Significant p-values`[-which(elevation.ZBcorr$`H0 reject` %in% slope.ZBcorr$`H0 reject`)]
+
+
+# Benjamini-Hochberg significant results
+elevation.ZBH0Rejects <- elevation.ZB$multcompresult[c(elevation.ZBcorr$`H0 reject` ),] 
+#rm(elevation.ZBcorr) # don't need anymore, but you can keep it around if you want
+
+# SMA pair-wise results table
+elevationPW.ZB <- multcompmatrix(elevation.ZB)
+
+```
+
+
+#Make table of intercept difference summaries, with empty rows in between so we don't get confused with what is what: 
+
+```{r}
+
+linear_intercept_table <- rbind(
+      c("Width across carnassials","","","","","",""),
+      elevation.CARNH0Rejects,
+      c("Width across canines","","","","","",""),
+      elevation.CBH0Rejects,
+      c("Occipital condyle width","","","","","",""),
+      elevation.OCWH0Rejects,
+      c("Palate length","","","","","",""), 
+      elevation.PLH0Rejects, 
+      c("Width across zygomatic arches","","","","","",""),
+      elevation.ZBH0Rejects
+     )
+
+write.csv(linear_intercept_table, file=here::here("Figures" ,"linear_intercept_table.csv"))
+
+
+
+
+```
+
+
+
+
+```{r Common elevation summaries}
+
+elevationSum <- data.frame(matrix(ncol = 3, nrow = 5))
+colnames(elevationSum) <- c("p-Value", "Wald_stat", "df")
+rownames(elevationSum) <- c("CARN", "CB", "OCW", "PL", "ZB")
+elevationSum["CARN",] <- c(elevation.CARN$gtr$p, elevation.CARN$gtr$stat, elevation.CARN$gtr$df)
+elevationSum["CB",] <- c(elevation.CB$gtr$p, elevation.CB$gtr$stat, elevation.CB$gtr$df)
+elevationSum["OCW",] <- c(elevation.OCW$gtr$p, elevation.OCW$gtr$stat, elevation.OCW$gtr$df)
+elevationSum["PL",] <- c(elevation.PL$gtr$p, elevation.PL$gtr$stat, elevation.PL$gtr$df)
+elevationSum["ZB",] <- c(elevation.ZB$gtr$p, elevation.ZB$gtr$stat, elevation.ZB$gtr$df)
+elevationSum$H0 <- "No_diff"
+elevationSum$H0[elevationSum$`p-Value` < 0.05] <- "REJECT"
+
+```
+
+# Plots
+
+```{r}
+specList <- unique(dataSub[,1])
+colList <- c("#d55e00", "#acd373", "#545454", "#E69f00", "#009e73", "#c87ef8", "#804d62")
+# library(RColorBrewer)
+# colList <- brewer.pal(7, "Dark2")
+
+
+```
+
+
+```{r Basic plots}
+# plotZB.Gmean <- plot(linMtrxData$Gmean, linMtrxData$ZB,
+#               pch = 21,
+#               col = "#000000",
+#               bg = linMtrxData$Colour,
+#               cex = 1.5,
+#               xlab = "Geometric Mean (mm)",                       
+#               ylab = "Zygomatic Width (mm)",                       
+#               main = "Zygomatic Width")
+# plotPL.Gmean <- plot(linMtrxData$Gmean, linMtrxData$PL,
+#               pch = 21,
+#               col = "#000000",
+#               bg = linMtrxData$Colour,
+#               cex = 1.5,
+#               xlab = "Geometric Mean (mm)",                       
+#               ylab = "Palate Length (mm)",                       
+#               main = "Facial Length")
+# plotCB.Gmean <- plot(linMtrxData$Gmean, linMtrxData$CB,
+#               pch = 21,
+#               col = "#000000",
+#               bg = linMtrxData$Colour,
+#               cex = 1.5,
+#               xlab = "Geometric Mean (mm)",                       
+#               ylab = "Canine Width (mm)",                       
+#               main = "Rostral Width at the Canine ")
+# plotCARN.Gmean <- plot(linMtrxData$Gmean, linMtrxData$CARN,
+#               pch = 21,
+#               col = "#000000",
+#               bg = linMtrxData$Colour,
+#               cex = 1.5,
+#               xlab = "Geometric Mean (mm)",                       
+#               ylab = "Carnassial Width (mm)",                       
+#               main = "Facial Width at the Carnassial")
+# plotCC.Gmean <- plot(linMtrxData$Gmean, linMtrxData$CC,
+#               pch = 21,
+#               col = "#000000",
+#               bg = linMtrxData$Colour,
+#               cex = 1.5,
+#               xlab = "Geometric Mean (mm)",                       
+#               ylab = "Occipital Condyle Width (mm)",                       
+#               main = "Occipital Condyle Width")
+```
+
+### Plots with MA-estimated lines
+
+```{r Facial plot}
+# NB: I can't figure out how (or if I can) get the plot function to interact with 
+# the output from smatr in order to make nice bespoke graphs.
+# I am not a clever person.
+
+svglite(filename = here::here("Figures", "LM_CARN.svg"),
+        height = 4.8, width = 6)
+plot(slope.CARN,
+     lwd = 1,
+     pch = 16,
+     col = colList, 
+     main = "Facial width at carnassials")
+legend("topleft", 
+       legend = specList, 
+       pch = 16,
+       col = colList,
+       bty = "n", 
+       pt.cex = 2, 
+       cex = 0.8, 
+       text.col = "black", 
+       horiz = F , 
+       inset = c(0.01, 0.0))
+ dev.off()
+
+```
+
+```{r Rostral plot}
+svglite(filename = here::here("Figures", "LM_CB.svg"),
+        height = 4.8, width = 6)
+plot(slope.CB,
+     lwd = 1,
+     pch = 16,
+     col = colList)
+legend("topleft", 
+       legend = specList, 
+       pch = 16,
+       col = colList,
+       bty = "n", 
+       pt.cex = 2, 
+       cex = 0.8, 
+       text.col = "black", 
+       horiz = F , 
+       inset = c(0.01, 0.0))
+ dev.off()
+```
+
+```{r Occipital condyle plot}
+svglite(filename = here::here("Figures", "LM_OCW.svg"),
+        height = 4.8, width = 6)
+plot(slope.OCW,
+     lwd = 1,
+     pch = 16,
+     col = colList)
+legend("topleft", 
+       legend = specList, 
+       pch = 16,
+       col = colList,
+       bty = "n", 
+       pt.cex = 2, 
+       cex = 0.8, 
+       text.col = "black", 
+       horiz = F , 
+       inset = c(0.01, 0.0))
+dev.off()
+```
+
+```{r Palate plot}
+svglite(filename = here::here("Figures", "LM_PL.svg"),
+        height = 4.8, width = 6)
+plot(slope.PL,
+     lwd = 1,
+     pch = 16,
+     col = colList)
+legend("topleft", 
+       legend = specList, 
+       pch = 16,
+       col = colList,
+       bty = "n", 
+       pt.cex = 2, 
+       cex = 0.8, 
+       text.col = "black", 
+       horiz = F , 
+       inset = c(0.01, 0.0))
+dev.off()
+```
+
+```{r Zygomatic plot}
+svglite(filename = here::here("Figures", "LM_ZB.svg"),
+        height = 4.8, width = 6)
+plot(slope.ZB,
+     lwd = 1,
+     pch = 16,
+     col = colList)
+legend("topleft", 
+       legend = specList, 
+       pch = 16,
+       col = colList,
+       bty = "n", 
+       pt.cex = 2, 
+       cex = 0.8, 
+       text.col = "black", 
+       horiz = F , 
+       inset = c(0.01, 0.0))
+dev.off()
+```
+
+

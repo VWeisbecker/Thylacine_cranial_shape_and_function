@@ -1,0 +1,212 @@
+---
+title: "Procrustes_Devo"
+author: "DSRovinsky"
+date: "2023-05-24"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r Packages}
+library(geomorph)  # CRAN v4.0.7
+library(shapes)    # CRAN v1.2.7
+library(tidyverse) # CRAN v2.0.0
+library(ggplot2)   # CRAN v3.5.1
+library(svglite)   # CRAN v2.1.3
+library(here)      # CRAN v1.0.1
+```
+
+```{r Load data}
+# Load data produced in "GMM_GPA.Rmd"
+load(here("Data", "Processed", "fnpLmkSymm.rda"))
+load(here("Data", "Processed", "paLmkSymm.rda"))
+load(here("Data", "Processed", "mesLmkSymm.rda"))
+
+# Load the labels produced in "GMM_GPA.Rmd"
+pointLabels <- readRDS(here("Data", "Processed", "pointLabels.rds"))
+# remove Nimbacinus dicksoni for Family comparisons
+familyLabels <- pointLabels[!pointLabels$Taxon %in% "Nimbacinus_dicksoni",]
+
+```
+
+# ProcDistances between thylacine and comparative species
+```{r Subset Coords}
+# Here, we'll look at the Procrustes distances between the thylacine and several 
+# interesting species (from a convergent evolution standpoint) 
+
+# subset out the species coordinates
+fnpSpeciesCoords <- coords.subset(A = fnpLmkSymm$symm.shape, group = pointLabels$Taxon)
+paSpeciesCoords <- coords.subset(A = paLmkSymm$symm.shape, group = pointLabels$Taxon)
+mesSpeciesCoords <- coords.subset(A = mesLmkSymm$symm.shape, group = pointLabels$Taxon)
+
+
+#calculate their mean shapes
+fnpSpeciesMShape <- lapply(fnpSpeciesCoords, mshape)
+paSpeciesMShape <- lapply(paSpeciesCoords, mshape)
+mesSpeciesMShape <- lapply(mesSpeciesCoords, mshape)
+```
+
+```{r Species' Procdist}
+# Generate pair-wise Procrustes distances between the thylacine and each species' 
+# mean shape in the total skull, rostral, and neurocranial datasets.
+# FNP
+fnpProcDist <- data.frame(matrix(ncol = 2, nrow = 60))
+colnames(fnpProcDist) <- c("Species", "ProcDist")
+fnpProcDist$Species <- unique(pointLabels$Taxon)
+fnpProcDist <- fnpProcDist[order(fnpProcDist$Species),]
+
+# PA
+paProcDist <- data.frame(matrix(ncol = 2, nrow = 60))
+colnames(paProcDist) <- c("Species", "ProcDist")
+paProcDist$Species <- unique(pointLabels$Taxon)
+paProcDist <- paProcDist[order(paProcDist$Species),]
+
+# MES
+mesProcDist <- data.frame(matrix(ncol = 2, nrow = 60))
+colnames(mesProcDist) <- c("Species", "ProcDist")
+mesProcDist$Species <- unique(pointLabels$Taxon)
+mesProcDist <- mesProcDist[order(mesProcDist$Species),]
+```
+
+```{r Pdist calc}
+# FNP
+for (i in 1:length(fnpSpeciesMShape)) {
+  fnpProcDist$ProcDist[i] <- procdist(fnpSpeciesMShape$Thylacinus_cynocephalus, fnpSpeciesMShape[[i]])
+}
+
+row.names(fnpProcDist) <- fnpProcDist$Species
+fnpProcDist <- fnpProcDist[!row.names(fnpProcDist) %in% "Thylacinus_cynocephalus",] # be a bit silly to compare itself
+
+# PA
+for (i in 1:length(paSpeciesMShape)) {
+  paProcDist$ProcDist[i] <- procdist(paSpeciesMShape$Thylacinus_cynocephalus, paSpeciesMShape[[i]])
+}
+
+row.names(paProcDist) <- paProcDist$Species
+paProcDist <- paProcDist[!row.names(paProcDist) %in% "Thylacinus_cynocephalus",]
+
+# MES
+for (i in 1:length(mesSpeciesMShape)) {
+  mesProcDist$ProcDist[i] <- procdist(mesSpeciesMShape$Thylacinus_cynocephalus, mesSpeciesMShape[[i]])
+}
+
+row.names(mesProcDist) <- mesProcDist$Species
+mesProcDist <- mesProcDist[!row.names(mesProcDist) %in% "Thylacinus_cynocephalus",]
+
+
+```
+
+```{r Find Closest species}
+# Pull out the 20 closest species (see "Procrustes_Analyses.Rmd" for discussion)
+topFNPDistance <- fnpProcDist[order(fnpProcDist$ProcDist, decreasing = F),]
+topFNPDistance <- topFNPDistance[1:20,]
+
+topPADistance <- paProcDist[order(paProcDist$ProcDist, decreasing = F),]
+topPADistance <- topPADistance[1:20,]
+
+topMESDistance <- mesProcDist[order(mesProcDist$ProcDist, decreasing = F),]
+topMESDistance <- topMESDistance[1:20,]
+
+
+
+topSpecies <- rbind.data.frame(topFNPDistance, 
+                               topPADistance,
+                               topMESDistance)
+row.names(topSpecies) <- c(1:nrow(topSpecies)) # because it inherited the species' names
+topSpecies <- droplevels(topSpecies) # there are species that aren't represented here
+
+# Now find who appears most frequently (i.e., n > 1) in the top 1/3 of the dataset
+topSpecies <- data.frame(table(topSpecies$Species)) # quick calc frequency of appearance
+topSpecies <- topSpecies[order(topSpecies$Freq, decreasing = T),]
+topSpecies <- topSpecies[topSpecies$Freq > 1,] # select those that appear more than once
+
+# We found them! These will be plotted below. :) 
+
+   
+topNames <- as.vector(topSpecies$Var1)
+topNames
+
+rm(topMESDistance,
+   topFNPDistance,
+   topPADistance,
+   topSpecies)
+```
+
+```{r Gather for ggplot}
+#gather that all up so we can look at it
+# re-order the Procrustes distance results we obtained above by species to they are all in the same order
+fnpProcDist <- fnpProcDist[order(fnpProcDist$Species),]
+paProcDist <- paProcDist[order(paProcDist$Species),]
+mesProcDist <- mesProcDist[order(mesProcDist$Species),]
+
+
+procDistSpecies <- cbind(fnpProcDist, paProcDist$ProcDist, mesProcDist$ProcDist)
+colnames(procDistSpecies) <- c("Species", "FNP_Pdist", "PA_Pdist", "MES_Pdist")
+rownames(procDistSpecies) <- procDistSpecies$Species
+procDistSpecies <- procDistSpecies[topNames,]
+procDistSpecies <- droplevels(procDistSpecies)
+procDistSpecies$mean_Pdist <- rowMeans(procDistSpecies[,c(2:4)])
+procDistSpecies <- procDistSpecies[order(procDistSpecies$mean_Pdist, decreasing = T),]
+
+
+# gather it so that ggplot can understand it
+plotDataSpecies <- gather(procDistSpecies, Set, Pdist, FNP_Pdist:MES_Pdist, factor_key=TRUE)
+# round the Pdist just for easy visual comparison
+roundDistSpecies <- round(procDistSpecies[,c(2:5)], 3)
+
+# clean up environment
+rm(mesSpeciesCoords,
+   fnpSpeciesCoords,
+   paSpeciesCoords,
+   mesProcDist, 
+   fnpProcDist, 
+   paProcDist,
+   mesSpeciesMShape,
+   fnpSpeciesMShape,
+   paSpeciesMShape)
+```
+
+```{r Species ProcDistance plot}
+svglite(filename = here::here("Figures", "Procdist_DevoSpecies.svg"),
+        pointsize = 6, height = 4, width = 3.6)
+ggplot(data = plotDataSpecies, aes(y = Pdist, 
+                                   x = fct_inorder(Species), 
+                                   colour = Set)) +
+    geom_linerange(aes(x = fct_inorder(Species), 
+                       ymin = 0, ymax = Pdist, 
+                       colour = Set), 
+                   position = position_dodge(width = 0.5), 
+                   size = 0.5)+
+    scale_colour_manual(name = "Landmark Set",
+                        labels = c("FNP", "PA", "MES"),
+                        values = c("#e69f00", "#56b4e9", "#cc79a7")) +
+    geom_point(aes(x = fct_inorder(Species), 
+                   y = Pdist, 
+                   shape = Set, 
+                   fill = Set),
+               position = position_dodge(width = 0.5), 
+               size = 3) +
+    scale_shape_manual(name = "Landmark Set",
+                       labels = c("FNP", "PA", "MES"),
+                       values = c(21,24,22)) +
+    scale_fill_manual(name = "Landmark Set",
+                      labels = c("FNP", "PA", "MES"),
+                      values = c("#e69f00", "#56b4e9", "#cc79a7")) +
+    coord_flip() +
+    ggtitle("Species Procrustes distance (Developmental)") +
+    ylab("Procrustes distance from thylacine") +
+    xlab(NULL) +
+    theme(panel.background = element_rect(fill = "#ffffff", colour = "#545454"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_line(linetype = "dotted", colour = "#bfbfbf"),
+        panel.grid.minor.x = element_line(linetype = "dotted", colour = "#bfbfbf"),
+        axis.text.x = element_text(size = 8),
+        axis.text.y = element_text(size = 8),
+        legend.position = "bottom") 
+ dev.off()
+```

@@ -1,0 +1,11 @@
+
+*.rda
+*.ply
+.Rproj.user
+.Rhistory
+*.svg
+*.pdf
+*.ply
+*.eps
+*.png
+*.rds

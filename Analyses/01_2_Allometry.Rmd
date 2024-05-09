@@ -1,0 +1,349 @@
+---
+title: "01_01_Allometry_check"
+author: "Vera Weisbecker"
+date: "2024-05-03"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##We are ignoring the effect of allometry on shape because it is not very strong. 
+```{r}
+
+library(geomorph)  # CRAN v4.0.7
+library(ape)       # CRAN v5.8
+library(caper)     # CRAN v1.0.3
+library(shapes)    # CRAN v1.2.7
+library(tidyverse) # CRAN v2.0.0
+library(svglite)   # CRAN v2.1.3
+library(here)      # CRAN v1.0.1
+
+load(here("Data", "Processed", "skullLmkSymm.rda"))
+load(here("Data", "Processed", "rostralLmkSymm.rda"))
+load(here("Data", "Processed", "neuroLmkSymm.rda"))
+load(file = here("Data", "Processed", "skullGPA.rda"))
+
+
+# Load the labels produced in "GMM_GPA.Rmd"
+pointLabels <- readRDS(here("Data", "Processed", "pointLabels.rds"))
+
+#Load phylogeny - this is the composite tree from Rovinsky et al., 2021, with the fossil taxa added
+# NB: Prothylacinus patagonicus is not included this tree
+rawTree <- read.tree(here::here("Data", "phyloGMM.tre"))
+```
+
+
+
+#Allometry with Andrewsarchus is strong but related to Andrewsarchus being a high-leverage outlier.
+```{r}
+#shape
+
+new.subset <-coords.subset(A = skullLmkSymm$symm.shape,
+                           group = pointLabels$Taxon) ##THIS IS NOW ALPHABETICAL
+meanCoords <- sapply(new.subset, 
+                      mshape, 
+                      simplify = "array") ##THIS IS NOW ALPHABETICAL
+
+#reorder coords to fit the tree
+meanCoords <- meanCoords[,,order(match(dimnames(meanCoords)[[3]],rawTree$tip.label))]
+
+
+Csize <- as.numeric(skullGPA$Csize)
+meanSkullCsize <- aggregate(Csize, 
+                       by = list(pointLabels$Taxon), 
+                       FUN = mean) ##THIS IS NOW ALPHABETICAL
+rownames(meanSkullCsize) <- meanSkullCsize$Group.1
+colnames(meanSkullCsize) <- c("Taxon", "Csize")
+meanSkullCsize <- droplevels(meanSkullCsize)
+
+#reorder Csize to fit the tree
+meanSkullCsize <- meanSkullCsize[order(match(meanSkullCsize[,1],rawTree$tip.label)),]
+
+#checks
+rownames(meanSkullCsize) == rawTree$tip.label
+dimnames(meanCoords)[[3]] == rawTree$tip.label
+rownames(meanSkullCsize) == dimnames(meanCoords)[[3]]
+
+allometry_gdf <- geomorph.data.frame(coords = meanCoords, Csize = meanSkullCsize$Csize, phy=rawTree)
+
+
+allometry_fit <- procD.pgls(coords ~ log(Csize), phy=rawTree, data=allometry_gdf)
+
+summary(allometry_fit)
+
+#Andrewsarchus is a high-leverage outlier
+plot(allometry_fit)
+
+
+```
+
+#Allometry without Andrewsarchus - residuals are appropriately distributed
+```{r}
+#take out Andrewsarchus
+
+rawTree <- drop.tip(phy = rawTree, tip = "Andrewsarchus_mongoliensis")
+
+#shape
+
+new.subset <-coords.subset(A = skullLmkSymm$symm.shape[,,-1],
+                           group = droplevels( pointLabels$Taxon[-1])) ##THIS IS NOW ALPHABETICAL
+meanCoords <- sapply(new.subset, 
+                      mshape, 
+                      simplify = "array") ##THIS IS NOW ALPHABETICAL
+
+#reorder coords to fit the tree
+meanCoords <- meanCoords[,,order(match(dimnames(meanCoords)[[3]],rawTree$tip.label))]
+
+
+
+rawTree$tip.label == dimnames(meanCoords)[[3]]
+
+
+#Csize without Andrewsarchus
+Csize <- as.numeric(skullGPA$Csize)[-1]
+meanSkullCsize <- aggregate(Csize, 
+                       by = list(pointLabels$Taxon[-1]), 
+                       FUN = mean) ##THIS IS NOW ALPHABETICAL
+
+rownames(meanSkullCsize) <- meanSkullCsize$Group.1
+colnames(meanSkullCsize) <- c("Taxon", "Csize")
+meanSkullCsize <- droplevels(meanSkullCsize)
+
+allometry_gdf <- geomorph.data.frame(coords = meanCoords, Csize = meanSkullCsize$Csize, phy=rawTree)
+
+
+allometry_fit <- procD.pgls(coords ~ log(Csize), phy=rawTree, data=allometry_gdf)
+
+summary(allometry_fit)
+
+#Here, the residuals are appropriate
+plot(allometry_fit)
+
+Allom_PCA <- gm.prcomp(allometry_gdf$coords)
+
+
+PCA_scores <-  as.data.frame(Allom_PCA$x)
+Csize_taxa <- data.frame(Csize=meanSkullCsize$Csize, species = meanSkullCsize$Taxon)
+Data_for_pgls <- cbind (PCA_scores, Csize_taxa)
+
+Csize_PCA_frame <- comparative.data( rawTree, Data_for_pgls, names.col = species)
+
+test <- pgls(Comp1~ log(Csize), data=Csize_PCA_frame)
+
+
+summary(test)
+
+```
+
+#The first two PCAs are not associated with size, then it is smeared across PCs
+```{r}
+PCs_tested <- 10
+pgls_PCA_table <- matrix(nrow=PCs_tested, ncol = 5)
+colnames(pgls_PCA_table) <- c("Estimate",  "Std. Error",   "t value", "Rsq", "p")
+
+for (i in 1:PCs_tested){
+  
+  temp <- summary(pgls( get(paste("Comp", i, sep="")) ~ log(Csize), data=Csize_PCA_frame))
+  
+ pgls_PCA_table[i,1:3]<- temp$coefficients[2,1:3]
+ pgls_PCA_table[i,4]<- temp$r.squared
+ pgls_PCA_table[i,5]<- temp$coefficients[2,4]
+
+}
+
+pgls_PCA_table[,c(1:3, 5)] <- round(pgls_PCA_table[,c(1:3, 5)], 3)
+pgls_PCA_table[,4] <- round(pgls_PCA_table[,4], 2)
+
+rownames(pgls_PCA_table)<- paste (rep("PC", PCs_tested), c(1:PCs_tested), sep="")
+
+write.csv(pgls_PCA_table, file="../Figures/pgls_PCA_table.csv")
+
+
+```
+
+
+#We are justified in keeping Andrewsarchus in the PCA plots because it does not impact on the morphospaces much. The below recreates Fig. 1 without Andrewsarchus.
+
+
+```{r Labels}
+pointLabels$PtCol <- "#fff0e0"
+pointLabels$PtCol[pointLabels$Clade == "Metatheria"] <- "#e0f0ff"
+pointLabels$PtCol[pointLabels$Family == "Thylacinidae"] <- "#c87ef8" #purple
+pointLabels$PtCol[pointLabels$Taxon == "Borhyaena_tuberata"] <- "#ca576c" #red - just to see position. 
+pointLabels$PtCol[pointLabels$Family == "Canidae"] <- "#ffaa5c" #blue
+pointLabels$PtCol[pointLabels$Taxon == "Canis_lupus"] <- "#233045" #navy - just to see position
+pointLabels$PtCol[pointLabels$Taxon == "Andrewsarchus_mongoliensis"] <- "#72c496" #green - just to see position
+pointLabels$Point <- 21
+pointLabels$Point[pointLabels$Clade == "Metatheria"] <- 23
+pointLabels$ID <- str_c(substr(pointLabels$Taxon,1,3), str_to_title(substr(sub(".*_", "", pointLabels$Taxon),1,3)) )
+# For publication, we'll change those 'position' colours back to their clade colours and use text call-outs
+
+
+# Gather mean value labels
+meanLabels <- pointLabels
+# This pulls out labels by species, and keeps the rest of the associated data columns
+meanLabels <- meanLabels %>%
+    distinct(Taxon, .keep_all = T)
+row.names(meanLabels) <- meanLabels$Taxon
+meanLabels <- meanLabels[order(meanLabels$Taxon, decreasing = F), ]
+```
+
+#### Skull without Andrewsarchus
+```{r Skull Set}
+
+new.subset <-coords.subset(A = skullLmkSymm$symm.shape[,,-1],
+                           group = droplevels(pointLabels$Taxon[-1])) ##THIS IS NOW ALPHABETICAL
+meanCoords <- sapply(new.subset, 
+                      mshape, 
+                      simplify = "array") ##THIS IS NOW ALPHABETICAL
+
+
+
+skullPCA <- gm.prcomp(meanCoords) 
+skullPCPlot <- plot(skullPCA)
+PCScores <- skullPCA$x[,1:10]
+skullPlotData <- bind_cols(PCScores, meanLabels[-2,])
+
+rm(new.subset, meanCoords, PCScores)
+
+```
+
+#### Rostrum
+```{r Skull Set}
+new.subset <-coords.subset(A = rostralLmkSymm$symm.shape[,,-1],
+                           group = droplevels(pointLabels$Taxon[-1])) ##THIS IS NOW ALPHABETICAL
+meanCoords <- sapply(new.subset, 
+                      mshape, 
+                      simplify = "array") ##THIS IS NOW ALPHABETICAL
+
+
+
+rostPCA <- gm.prcomp(meanCoords) 
+rostPCPlot <- plot(rostPCA)
+PCScores <- rostPCA$x[,1:10]
+rostPlotData <- bind_cols(PCScores, meanLabels[-2,])
+
+rm(new.subset, meanCoords, PCScores)
+
+```
+#### Neurocranium
+```{r Skull Set}
+new.subset <-coords.subset(A = neuroLmkSymm$symm.shape[,,-1],
+                           group = droplevels(pointLabels$Taxon[-1])) ##THIS IS NOW ALPHABETICAL
+meanCoords <- sapply(new.subset, 
+                      mshape, 
+                      simplify = "array") ##THIS IS NOW ALPHABETICAL
+
+
+
+neurPCA <- gm.prcomp(meanCoords) 
+neurPCPlot <- plot(neurPCA)
+PCScores <- neurPCA$x[,1:10]
+neurPlotData <- bind_cols(PCScores, meanLabels[-2,])
+
+rm(new.subset, meanCoords, PCScores)
+
+```
+
+#Note that PC2 is flipped but otherwise very similar to Fig. 1
+```{r Plot}
+
+pdf(file="../Figures/Supp1_AMong_removed.pdf", width=10, height=10)
+
+par(mfrow=c(2,2))
+
+plot(NULL,
+     xlim = range(skullPlotData$Comp1),
+     ylim = -range(skullPlotData$Comp2),
+     lwd = 0.5,
+     asp = 1,
+     xlab = "PC1",                       
+     ylab = "PC2 (flipped)",                       
+     main = "Full Cranium")
+abline(h = 0, 
+       col = "#545454", 
+       lty = "dashed", 
+       lwd = 0.5)
+abline(v = 0, 
+       col = "#545454", 
+       lty = "dashed", 
+       lwd = 0.5)
+points(skullPlotData$Comp2 ~ skullPlotData$Comp1, 
+     pch = skullPlotData$Point, 
+     col = "#000000", 
+     bg = skullPlotData$PtCol, 
+     cex = 2)
+
+
+#rostrum
+
+plot(NULL,
+     xlim = range(rostPlotData$Comp1),
+     ylim = -range(rostPlotData$Comp2),
+     asp = 1,
+     xlab = "PC1",                       
+     ylab = "PC2 (flipped)",                       
+     main = "Rostrum")
+abline(h = 0, 
+       col = "#545454", 
+       lty = "dashed", 
+       lwd = 0.5)
+abline(v = 0, 
+       col = "#545454", 
+       lty = "dashed", 
+       lwd = 0.5)
+points(rostPlotData$Comp2 ~ rostPlotData$Comp1, 
+     pch = rostPlotData$Point, 
+     col = "#000000", 
+     bg = rostPlotData$PtCol, 
+     cex = 2)
+
+
+
+#Neurocranium
+
+plot(NULL,
+     xlim = range(neurPlotData$Comp1),
+     ylim = range(neurPlotData$Comp2),
+     asp = 1,
+     xlab = "PC1",                       
+     ylab = "PC2",                       
+     main = "Neurocranium")
+abline(h = 0, 
+       col = "#545454", 
+       lty = "dashed", 
+       lwd = 0.5)
+abline(v = 0, 
+       col = "#545454", 
+       lty = "dashed", 
+       lwd = 0.5)
+points(neurPlotData$Comp2 ~ neurPlotData$Comp1, 
+     pch = neurPlotData$Point, 
+     col = "#000000", 
+     bg = neurPlotData$PtCol, 
+     cex = 2)
+
+legend("bottomleft",
+       legend = expression("Placentals", "Canids",
+                  "Metatherians", "Thylacinidae", italic("Borhyaena"), italic("C. lupus")),
+       pch = c(21, 21, 23, 23),
+       col = c("#000000", "#000000", "#000000", "#000000"),
+       pt.bg = c("#fff0e0", "#ffaa5c", "#e0f0ff", "#c87ef8", "#ca576c", "black"),
+       bty = "n",
+       pt.cex = 2,
+       cex = 1,
+       text.col = "black",
+       horiz = F ,
+       inset = c(0.00, 0.0))
+
+plot.new()
+
+
+
+dev.off()
+
+```
