@@ -176,7 +176,7 @@ plotData$xNum <- 1:nrow(plotData)
 #The colour scheme is the result of some experimentation and not optimised code-wise for this final published plot
 plotData$StemCol <- "#cccccc" # 20% gray
 plotData$StemCol[plotData$Family == "Canidae"] <- "#ffaa5c" # yellow
-plotData$StemCol[plotData$Taxon == "Canis_lupus"] <- "#233045" # navy - to see position
+plotData$StemCol[plotData$Taxon == "Canis_lupus"] <- "#ffaa5c" # navy - to see position
 plotData$StemCol[plotData$Clade == "Metatheria"] <- "#e0f0ff" # blue
 plotData$StemCol[plotData$Taxon == "Thylacinus_cynocephalus"] <- "#c87ef8" # electric purple
 plotData$StemCol[plotData$Taxon == "Nimbacinus_dicksoni"] <- "#e6e6b8" # cream - to see position
@@ -185,12 +185,12 @@ plotData$StemCol[plotData$Taxon == "Andrewsarchus_mongoliensis"] <- "#72c496" # 
 
 plotData$PtCol <- "#f0eef0" # off-white
 plotData$PtCol[plotData$Family == "Canidae"] <- "#ffaa5c" 
-plotData$PtCol[plotData$Taxon == "Canis_lupus"] <- "#233045" # to see position
-plotData$PtCol[plotData$Taxon == "Crocuta_crocuta"] <- "#233045" # to see position
+plotData$PtCol[plotData$Taxon == "Canis_lupus"] <- "#ffaa5c" # to see position
+plotData$PtCol[plotData$Taxon == "Crocuta_crocuta"] <- "#f0eef0" # to see position
 plotData$PtCol[plotData$Clade == "Metatheria"] <- "#e0f0ff"
 plotData$PtCol[plotData$Taxon == "Thylacinus_cynocephalus"] <- "#c87ef8"
-plotData$PtCol[plotData$Taxon == "Nimbacinus_dicksoni"] <- "#e6e6b8" # cream - to see position
-plotData$PtCol[plotData$Taxon == "Borhyaena_tuberata"] <- "#ca576c" # red - to see position
+plotData$PtCol[plotData$Taxon == "Nimbacinus_dicksoni"] <- "#c87ef8" # cream - to see position
+plotData$PtCol[plotData$Taxon == "Borhyaena_tuberata"] <- "#e0f0ff" # red - to see position
 plotData$PtCol[plotData$Taxon == "Andrewsarchus_mongoliensis"] <- "#72c496" # green - to see position
 
 plotData$PtSet <- 21
