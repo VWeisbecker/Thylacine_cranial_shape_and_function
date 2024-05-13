@@ -1,4 +1,4 @@
-#Code to replicate analyses and figures of the manuscript "Big heads and snapping bites: Skull shape of the extinct Tasmanian tiger suggests a unique hunting style"
+## Code to replicate analyses and figures of the manuscript "Big heads and snapping bites: Skull shape of the extinct Tasmanian tiger suggests a unique hunting style"
 
 Code authors: Douglass Rovinsky, Vera Weisbecker
 
