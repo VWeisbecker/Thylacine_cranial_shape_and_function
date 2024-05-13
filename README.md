@@ -1,6 +1,7 @@
 ## Code to replicate analyses and figures of the manuscript "Big heads and snapping bites: Skull shape of the extinct Tasmanian tiger suggests a unique hunting style"
+Manuscript authors: Douglass S Rovinsky, Andrew J Pask, Axel H Newton, and Vera Weisbecker
 
-Code authors: Douglass Rovinsky, Vera Weisbecker
+Code authors: Douglass S Rovinsky, Vera Weisbecker
 
 *All scripts are in RMarkdown format (.Rmd), which can be opened in RStudio. There, you can edit and run code chunks as normal or use the Knit button to create HTML versions with both code and output. After cloning this repo, remember to either set your working directory to the correct folder on your computer or open an RStudio project from that folder.*
 
