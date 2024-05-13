@@ -1,0 +1,44 @@
+#Code to replicate analyses and figures of the manuscript "Big heads and snapping bites: Skull shape of the extinct Tasmanian tiger suggests a unique hunting style"
+
+Code authors: Douglass Rovinsky, Vera Weisbecker
+
+*All scripts are in RMarkdown format (.Rmd), which can be opened in RStudio. There, you can edit and run code chunks as normal or use the Knit button to create HTML versions with both code and output. After cloning this repo, remember to either set your working directory to the correct folder on your computer or open an RStudio project from that folder.*
+
+## [Data](/Data)
+
+Contains all data required to run the analyses, including the [landmark data](/Data/BWT_ABN_lmks.txt) with associated [landmark pairings](/Data/LmkPairs_adj.csv), [development-based partitions](/Data/Sets_Newtonetal2021.csv), and [phylogeny file](/Data/phyloGMM.tre); [body mass estimates for species](/Data/Body_mass.csv); [linear cranial morphometric data](/Data/Thylacine_Canis.csv); and [infraorbital foramen dataset collation](/Data/IOF_Data_Muchlinski.csv).
+
+
+    
+## [Analyses](/Analyses)
+**These scripts save several outputs from raw data for downstream use**. These intermediate data are stored as .rda files in the [..Data/Processed](/Data/Processed) folder. These are too large to upload to GitHub so scripts must be run sequentially to generate these outputs. 
+
+* [**01_1_GMM_GPA.Rmd**](/Analysis/01_1_GMM_GPA.Rmd) extracts  3D coordinates from the original Viewbox file and prepares them for analysis. Runs GPA with bilateral symmetry for the whole cranium and all partitions and saves the results in .rda files in the [..Data/Processed](/Data/Processed) folder.
+
+
+* [**01_2_Allometry.Rmd**](Analyses/01_2_Allometry.Rmd) computes analyses of allometry for Supplementary Notes 1.
+
+
+* [**02_PCA_Functional.Rmd**](Analyses/02_PCA_Functional.Rmd) runs the Principal Components Analyses (PCA) for the whole-cranium and rostral _versus_ neurocranial landmark partitions for outputs in Fig. 1.
+
+* [**03_PCA_Developmental.Rmd**](Analyses/03_PCA_Developmental.Rmd) runs the Principal Components Analyses (PCA) for the developmental partitions and creates outputs for Supplementary Fig. 1
+
+* [**04_Procrustes_Funct_Analyses.Rmd**](Analyses/04_Procrustes_Funct_Analyses.Rmd) computes Procrustes distances and outputs for the whole-cranium and rostral _versus_ neurocranial landmark partitions for Fig. 2a
+
+* [**05_Procrustes_Devo_Analyses.Rmd**](Analyses/05_Procrustes_Devo_Analyses.Rmd) computes Procrustes distances and outputs for the developmental landmark partitions for Fig. 2b
+
+* [**06_Csize_Analyses.Rmd**](Analyses/06_Csize_Analyses.Rmd) produces outputs of body mass _versus_ centroid size plots for Fig. 3
+
+* [**07_Cranial_Linear_Metrics.Rmd**](Analyses/07_Cranial_Linear_Metrics.Rmd) computes regression comparisons between linear measurements _versus_ the geometric mean of all measurements for Fig. 4 and Supp. Table 1.
+
+* [**08_Terminal_Rosette_Analysis.Rmd**](Analyses/08_Terminal_Rosette_Analysis.Rmd) produces the outputs for the "rostral pinch" Fig. 5
+
+* [**09_IOF.Rmd**](Analyses/09_IOF.Rmd) produces the outputs of Fig. 6 of comparative size of the infraorbital foramen. 
+
+* [**10_Weisbecker_etal_2023_Csize.Rmd**](Analyses/10_Weisbecker_etal_2023_Csize.Rmd) shows that the thylacine's cranial size is an outlier among living marsupials (Supp. Fig. 2 )
+
+
+### Custom functions
+The Benjamini-Hochberg procedure and use of the Evomap package call custom functions, most of which are defined in the [..Data/Functions/Fun.R](/Data/Functions/Fun.R) file. 
+
+
