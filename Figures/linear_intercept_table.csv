@@ -1,47 +1,45 @@
-,,INTERCEPTS,,,,,,SLOPES,,,,
-Species 1,Species 2,Elev1,Elev2,TestStat,p,,Species 1,Species2,Slope1,Slope2,TestStat,p
-Width across carnassials,,,,,,,Width across carnassials,,,,,
-Canis_dingo,Canis_lupus,3.08,5.98,10.63,0.001,,Canis_dingo,Canis_latrans,0.88,1.39,8.41,0.004
-Canis_dingo,Lupulella_adusta,7.50,5.13,4.73,0.030,,Canis_latrans,Canis_lupus,1.39,0.96,7.21,0.007
-Canis_dingo,Thylacinus_cynocephalus,15.30,12.22,56.03,0.000,,Canis_latrans,Thylacinus_cynocephalus,1.39,0.77,16.75,0.000
-Canis_dingo,Vulpes_vulpes,5.68,2.06,14.21,0.000,,Canis_latrans,Vulpes_vulpes,1.39,0.98,5.83,0.016
-Canis_lupus,Lupulella_adusta,4.09,0.36,4.42,0.036,,Canis_lupus,Thylacinus_cynocephalus,0.96,0.77,6.25,0.012
-Canis_lupus,Vulpes_vulpes,5.11,-0.38,12.34,0.000,,Thylacinus_cynocephalus,Vulpes_vulpes,0.77,0.98,5.48,0.019
-Lupulella_adusta,Vulpes_vulpes,3.01,1.45,7.94,0.005,,,,,,,
-Lycalopex_gymnocercus,Thylacinus_cynocephalus,9.62,13.11,10.19,0.001,,,,,,,
-Width across canines,,,,,,,Width across canines,,,,,
-Canis_dingo,Lycalopex_gymnocercus,-9.57,-7.37,4.39,0.036,,Canis_dingo,Canis_latrans,1.25,1.79,6.29,0.012
-Canis_dingo,Thylacinus_cynocephalus,-8.87,-12.85,236.57,0.000,,Canis_latrans,Canis_lupus,1.79,1.10,12.06,0.001
-Canis_dingo,Vulpes_vulpes,-9.84,-7.73,6.74,0.009,,Canis_latrans,Thylacinus_cynocephalus,1.79,1.35,5.70,0.017
-Canis_latrans,Lupulella_adusta,-22.99,-19.84,12.85,0.000,,Canis_lupus,Thylacinus_cynocephalus,1.10,1.35,6.43,0.011
-Canis_latrans,Lycalopex_gymnocercus,-17.98,-12.67,19.90,0.000,,,,,,,
-Canis_latrans,Vulpes_vulpes,-17.51,-12.99,29.92,0.000,,,,,,,
-Lupulella_adusta,Lycalopex_gymnocercus,-11.89,-9.57,10.14,0.001,,,,,,,
-Lupulella_adusta,Thylacinus_cynocephalus,-8.87,-13.09,64.70,0.000,,,,,,,
-Lupulella_adusta,Vulpes_vulpes,-12.05,-10.12,16.59,0.000,,,,,,,
-Lycalopex_gymnocercus,Thylacinus_cynocephalus,-7.00,-13.03,118.29,0.000,,,,,,,
-Thylacinus_cynocephalus,Vulpes_vulpes,-13.08,-7.17,158.60,0.000,,,,,,,
-Occipital condyle width,,,,,,,Occipital condyle width,,,,,
-Lycalopex_gymnocercus,Vulpes_vulpes,1.77,-0.10,16.55,0.000,,Canis_dingo,Thylacinus_cynocephalus,1.16,0.79,10.46,0.001
-,,,,,,,Canis_latrans,Thylacinus_cynocephalus,1.47,0.79,11.45,0.001
-,,,,,,,Canis_lupus,Thylacinus_cynocephalus,1.12,0.79,8.13,0.004
-Palate length,,,,,,,,,,,,
-Canis_dingo,Canis_latrans,-11.21,-5.68,32.38,0.000,,,,,,,
-Canis_dingo,Lupulella_adusta,-7.58,2.50,28.99,0.000,,,,,,,
-Canis_dingo,Lycalopex_gymnocercus,-1.27,3.87,3.89,0.048,,,,,,,
-Canis_dingo,Thylacinus_cynocephalus,-11.32,-2.60,202.78,0.000,,,,,,,
-Canis_dingo,Vulpes_vulpes,-11.53,-4.00,14.27,0.000,,,,,,,
-Canis_latrans,Canis_lupus,-8.22,-15.77,10.57,0.001,,,,,,,
-Canis_latrans,Lupulella_adusta,-25.36,-17.17,11.00,0.001,,,,,,,
-Canis_latrans,Thylacinus_cynocephalus,-7.12,-4.21,9.58,0.002,,,,,,,
-Canis_latrans,Vulpes_vulpes,-22.59,-17.06,5.22,0.022,,,,,,,
-Canis_lupus,Lupulella_adusta,-12.45,-0.40,13.16,0.000,,,,,,,
-Canis_lupus,Thylacinus_cynocephalus,-13.07,-3.05,138.33,0.000,,,,,,,
-Canis_lupus,Vulpes_vulpes,-15.63,-5.68,8.64,0.003,,,,,,,
-Lupulella_adusta,Thylacinus_cynocephalus,-1.28,-3.72,3.41,0.065,,,,,,,
-Lupulella_adusta,Vulpes_vulpes,-11.75,-14.24,3.70,0.054,,,,,,,
-Width across zygomatic arches,,,,,,,,,,,,
-Canis_latrans,Thylacinus_cynocephalus,-41.54,-44.75,10.54,0.001,,Canis_dingo,Thylacinus_cynocephalus,1.03,1.37,9.36,0.002
-Canis_latrans,Vulpes_vulpes,-11.33,-7.60,4.64,0.031,,Canis_lupus,Thylacinus_cynocephalus,1.00,1.37,10.72,0.001
-Lupulella_adusta,Thylacinus_cynocephalus,-37.06,-45.00,20.86,0.000,,Lycalopex_gymnocercus,Thylacinus_cynocephalus,0.97,1.37,7.71,0.006
-Lupulella_adusta,Vulpes_vulpes,-3.96,-0.99,8.24,0.004,,Thylacinus_cynocephalus,Vulpes_vulpes,1.37,1.03,9.11,0.003
+"","Species_1","Species_2","Pval","TestStat","df","Elev1","Elev2"
+"1","Width across carnassials","","","","","",""
+"2","Canis_dingo","Canis_lupus","0.0011112067103809","10.6324455076721","1","3.0760506892073","5.97638712309812"
+"3","Canis_dingo","Lupulella_adusta","0.0295868590515805","4.733137936821","1","7.49971663245773","5.12742805188394"
+"5","Canis_dingo","Thylacinus_cynocephalus","7.1276318180935e-14","56.0336799207523","1","15.2976527627486","12.2163625119543"
+"6","Canis_dingo","Vulpes_vulpes","0.000163274911838762","14.2125845917055","1","5.67895187490466","2.06133635369312"
+"12","Canis_lupus","Lupulella_adusta","0.0356139051283286","4.41549688330487","1","4.09116400059135","0.360153901354515"
+"15","Canis_lupus","Vulpes_vulpes","0.000444513029262072","12.3351305010104","1","5.11249380929868","-0.37827493626434"
+"18","Lupulella_adusta","Vulpes_vulpes","0.00482684595837013","7.94319794503427","1","3.01204385376903","1.45310900373487"
+"19","Lycalopex_gymnocercus","Thylacinus_cynocephalus","0.00141026174033843","10.1923278194276","1","9.6215826577656","13.1147563814054"
+"10","Width across canines","","","","","",""
+"4","Canis_dingo","Lycalopex_gymnocercus","0.0360779458747642","4.39341661691069","1","-9.57130612498601","-7.36513010765976"
+"51","Canis_dingo","Thylacinus_cynocephalus","0","236.571234641637","1","-8.86805782219967","-12.8508412642743"
+"61","Canis_dingo","Vulpes_vulpes","0.00944640951703657","6.736418324003","1","-9.8374335390119","-7.7348808701209"
+"8","Canis_latrans","Lupulella_adusta","0.000337462986472414","12.850090145109","1","-22.988806887405","-19.8358274661191"
+"9","Canis_latrans","Lycalopex_gymnocercus","8.17205180203562e-06","19.897186125328","1","-17.9840540851091","-12.6684263017185"
+"11","Canis_latrans","Vulpes_vulpes","4.50283665909268e-08","29.9198314301701","1","-17.5118716723291","-12.9907563898237"
+"16","Lupulella_adusta","Lycalopex_gymnocercus","0.001449371094562","10.1418947469066","1","-11.8880975811049","-9.57486752974626"
+"17","Lupulella_adusta","Thylacinus_cynocephalus","8.88178419700125e-16","64.6967201883084","1","-8.86561995075281","-13.0909927350845"
+"181","Lupulella_adusta","Vulpes_vulpes","4.64901784588134e-05","16.5861136051349","1","-12.0540391363763","-10.1180602178963"
+"191","Lycalopex_gymnocercus","Thylacinus_cynocephalus","0","118.290577968008","1","-7.00134242551342","-13.032858795902"
+"21","Thylacinus_cynocephalus","Vulpes_vulpes","0","158.603154196168","1","-13.0820683502641","-7.17137419786478"
+"22","Occipital condyle width","","","","","",""
+"171","Lupulella_adusta","Thylacinus_cynocephalus","0.019396508019017","5.46540952720243","1","-17.8856994555499","-14.5855385971717"
+"20","Lycalopex_gymnocercus","Vulpes_vulpes","5.02314826622552e-07","25.2549118903982","1","-3.02717666432633","0.170285466616271"
+"25","Palate length","","","","","",""
+"13","Canis_dingo","Canis_latrans","1.2706438679011e-08","32.3757174132947","1","-11.2112714775188","-5.67653353072198"
+"31","Canis_dingo","Lupulella_adusta","7.27103799391671e-08","28.99113238447","1","-7.58400636574638","2.50358017069024"
+"41","Canis_dingo","Lycalopex_gymnocercus","0.0484786314722605","3.89331550481451","1","-1.26796361788364","3.87345847122091"
+"52","Canis_dingo","Thylacinus_cynocephalus","0","202.775110669523","1","-11.3219669173292","-2.60228184891464"
+"62","Canis_dingo","Vulpes_vulpes","0.00015827423791992","14.2711260359205","1","-11.5273169096931","-3.99759936970929"
+"7","Canis_latrans","Canis_lupus","0.00115210873839922","10.5656121741663","1","-8.21895284891491","-15.7683532263902"
+"81","Canis_latrans","Lupulella_adusta","0.000911858178168745","10.9984966878808","1","-25.3579210183088","-17.1687002457052"
+"101","Canis_latrans","Thylacinus_cynocephalus","0.00196465358242426","9.58226990380784","1","-7.12086354677086","-4.21082797673577"
+"111","Canis_latrans","Vulpes_vulpes","0.0223143929836067","5.22110301362891","1","-22.5866111635685","-17.0557309169851"
+"121","Canis_lupus","Lupulella_adusta","0.000286023257605406","13.1597748020343","1","-12.4503473334017","-0.398769016841086"
+"14","Canis_lupus","Thylacinus_cynocephalus","0","138.326548016844","1","-13.065650778198","-3.04552802879546"
+"151","Canis_lupus","Vulpes_vulpes","0.00328670250870167","8.64105942118543","1","-15.6348779166284","-5.6825098251869"
+"172","Lupulella_adusta","Thylacinus_cynocephalus","0.0649050306814186","3.40738992478104","1","-1.28043138745063","-3.72177717947449"
+"182","Lupulella_adusta","Vulpes_vulpes","0.0544362173745524","3.69927190592703","1","-11.7513653826162","-14.2372830572162"
+"40","Width across zygomatic arches","","","","","",""
+"102","Canis_latrans","Thylacinus_cynocephalus","0.00116542604988767","10.544368970412","1","-41.544168823607","-44.7476041400539"
+"112","Canis_latrans","Vulpes_vulpes","0.031292845312721","4.636825008147","1","-11.3277067718608","-7.59935492254336"
+"173","Lupulella_adusta","Thylacinus_cynocephalus","4.93228186360106e-06","20.8634052257427","1","-37.0557896135786","-45.0013123025612"
+"183","Lupulella_adusta","Vulpes_vulpes","0.00410396966757565","8.23723091840303","1","-3.9595733031806","-0.989191708862904"

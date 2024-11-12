@@ -1,7 +1,7 @@
 ---
-title: "Procrustes_Analyses"
+title: "04_02_Procrustes_Funct_Analyses_v2"
 author: "DSRovinsky"
-date: '2022-06-14'
+date: "`r Sys.Date()`"
 output: html_document
 editor_options:
   chunk_output_type: console
@@ -9,17 +9,16 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
 ```
 
 # Gather up the data
 ```{r Packages}
-library(geomorph)  # CRAN v4.0.7
-library(shapes)    # CRAN v1.2.7
-library(tidyverse) # CRAN v2.0.0
-library(ggplot2)   # CRAN v3.5.1
-library(svglite)   # CRAN v2.1.3
-library(here)      # CRAN v1.0.1
+library(geomorph)
+library(shapes)
+library(tidyverse)
+library(ggplot2)
+library(svglite)
+library(here)
 ```
 
 
@@ -34,7 +33,6 @@ pointLabels <- readRDS(here("Data", "Processed", "pointLabels.rds"))
 # remove Nimbacinus dicksoni for Family comparisons
 familyLabels <- pointLabels[!pointLabels$Taxon %in% "Nimbacinus_dicksoni",]
 ```
-
 
 
 # ProcDistances between thylacine and comparative species
@@ -103,6 +101,15 @@ for (i in 1:length(neuroSpeciesMShape)) {
 
 row.names(neuroProcDist) <- neuroProcDist$Species
 neuroProcDist <- neuroProcDist[!row.names(neuroProcDist) %in% "Thylacinus_cynocephalus",]
+
+##make table
+rownames(skullProcDist)==rownames(neuroProcDist)
+rownames(neuroProcDist)==rownames(rostralProcDist)
+
+functional_procdists_table <- cbind(skullProcDist, rostralProcDist$ProcDist, neuroProcDist$ProcDist)
+save(functional_procdists_table, file="./Data/Processed/functional_procdists_table.rda")
+
+
 ```
 
 
@@ -136,7 +143,7 @@ topSpecies <- data.frame(table(topSpecies$Species)) # quick calc frequency of ap
 topSpecies <- topSpecies[order(topSpecies$Freq, decreasing = T),]
 topSpecies <- topSpecies[topSpecies$Freq > 1,] # select those that appear more than once
 
-# We found them! Turns out there's 18 species. These will be plotted below. :) 
+# We found them! Turns out there's 19 species. These will be plotted below. :) 
 
    
 topNames <- as.vector(topSpecies$Var1)
@@ -184,7 +191,7 @@ rm(skullSpeciesCoords,
 
 
 ```{r Species ProcDistance plot}
-svglite(filename = here::here("Figures", "Procdist_FuncSpecies.svg"),
+svglite(filename = here::here("Figures", "Procdist_FuncSpecies_v2.svg"),
         pointsize = 6, height = 4, width = 3.6)
 ggplot(data = plotDataSpecies, aes(y = Pdist, 
                                    x = fct_inorder(Species), 
@@ -210,7 +217,7 @@ ggplot(data = plotDataSpecies, aes(y = Pdist,
                       labels = c("Skull", "Rostrum", "Neurocranium"),
                       values = c("#233045", "#72c496", "#ba5800")) +
     coord_flip() +
-    ylab("Procrustes distance from thylacine") +
+    ylab("Procrustes distance from thylacine v2") +
     xlab(NULL) +
     theme(panel.background = element_rect(fill = "#ffffff", colour = "#545454"),
         panel.grid.major.y = element_blank(),
@@ -238,4 +245,3 @@ Q1SkullSpecs <- roundDistSpecies[roundDistSpecies$Skull_Pdist <= 0.1220, ]
 Q1RostralSpecs <- roundDistSpecies[roundDistSpecies$Rostral_Pdist <= 0.1510, ]
 Q1NeuroSpecs <- roundDistSpecies[roundDistSpecies$Neuro_Pdist <= 0.1710, ]
 ```
-

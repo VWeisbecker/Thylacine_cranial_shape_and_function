@@ -1,0 +1,120 @@
+---
+title: "11_Landmark_Config_Vis"
+author: "DSRovinsky"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(geomorph) # CRAN v4.0.7
+library(shapes)   # CRAN v1.2.7
+library(dplyr)    # CRAN v1.1.4
+library(here)     # CRAN v1.0.1
+```
+
+```{r Load some data}
+# Load data produced in "GMM_GPA.Rmd"
+load(here("Data", "Processed", "skullLmkSymm.rda"))
+lmkSets <- read.csv(here("Data", "Sets_Newtonetal2021.csv"))
+# Load the labels produced in "GMM_GPA.Rmd"
+pointLabels <- readRDS(here("Data", "Processed", "pointLabels.rds"))
+```
+
+```{r Calculate mean shapes}
+new.subset <-coords.subset(A = skullLmkSymm$symm.shape,
+                           group = pointLabels$Taxon) ##THIS IS NOW ALPHABETICAL
+meanCoords <- sapply(new.subset, 
+                      mshape, 
+                      simplify = "array") ##THIS IS NOW ALPHABETICAL
+
+rm(new.subset)
+```
+
+```{r Gather landmark sets}
+rostral <- c(1:29, 47:109, 229:300, 373:381)
+neuro <- c(c(22:23, 30:46, 110:228, 301:372))
+
+FNP <- na.omit(as.numeric(lmkSets$FNP))
+PA <- na.omit(as.numeric(lmkSets$PA))
+MES <- na.omit(as.numeric(lmkSets$MES))
+```
+
+```{r Total Skull}
+# Using the thylacine here; you can use whatever critter in the dataset you want. 
+spheres3d(meanCoords[, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#233045")
+```
+
+
+```{r Rostral set}
+spheres3d(meanCoords[, , "Thylacinus_cynocephalus"],
+          radius = 0.002,
+          color= "#cccccc")
+spheres3d(meanCoords[rostral, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#72c496")
+```
+
+```{r Neurocranial set}
+spheres3d(meanCoords[, , "Thylacinus_cynocephalus"],
+          radius = 0.002,
+          color= "#cccccc")
+spheres3d(meanCoords[neuro, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#ba5800")
+```
+
+```{r Combined Functional sets}
+spheres3d(meanCoords[rostral, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#72c496")
+spheres3d(meanCoords[neuro, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#ba5800")
+```
+
+
+```{r FNP Developmental set}
+spheres3d(meanCoords[, , "Thylacinus_cynocephalus"],
+          radius = 0.002,
+          color= "#cccccc")
+spheres3d(meanCoords[FNP, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#e69f00")
+```
+
+```{r PA Developmental set}
+spheres3d(meanCoords[, , "Thylacinus_cynocephalus"],
+          radius = 0.002,
+          color= "#cccccc")
+spheres3d(meanCoords[PA, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#56b4e9")
+```
+
+```{r MES Developmental set}
+spheres3d(meanCoords[, , "Thylacinus_cynocephalus"],
+          radius = 0.002,
+          color= "#cccccc")
+spheres3d(meanCoords[MES, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#cc79a7")
+```
+
+```{r Combined Developmental sets}
+spheres3d(meanCoords[FNP, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#e69f00")
+spheres3d(meanCoords[PA, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#56b4e9")
+spheres3d(meanCoords[MES, , "Thylacinus_cynocephalus"],
+          radius = 0.0025,
+          color= "#cc79a7")
+```
+

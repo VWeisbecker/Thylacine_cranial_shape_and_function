@@ -19,13 +19,21 @@ library(ape)       # CRAN v5.8
 library(caper)     # CRAN v1.0.3
 library(shapes)    # CRAN v1.2.7
 library(tidyverse) # CRAN v2.0.0
-library(svglite)   # CRAN v2.1.3
+library(svglite)   # CRAN .1.3
 library(here)      # CRAN v1.0.1
 
 load(here("Data", "Processed", "skullLmkSymm.rda"))
 load(here("Data", "Processed", "rostralLmkSymm.rda"))
 load(here("Data", "Processed", "neuroLmkSymm.rda"))
+load(here("Data", "Processed", "fnpLmkSymm.rda"))
+load(here("Data", "Processed", "mesLmkSymm.rda"))
+load(here("Data", "Processed", "paLmkSymm.rda"))
 load(file = here("Data", "Processed", "skullGPA.rda"))
+load(file = here("Data", "Processed", "rostralGPA.rda"))
+load(file = here("Data", "Processed", "neuroGPA.rda"))
+load(file = here("Data", "Processed", "fnpGPA.rda"))
+load(file = here("Data", "Processed", "mesGPA.rda"))
+load(file = here("Data", "Processed", "paGPA.rda"))
 
 
 # Load the labels produced in "GMM_GPA.Rmd"
@@ -113,6 +121,15 @@ rownames(meanSkullCsize) <- meanSkullCsize$Group.1
 colnames(meanSkullCsize) <- c("Taxon", "Csize")
 meanSkullCsize <- droplevels(meanSkullCsize)
 
+#reorder Csize to fit the tree
+meanSkullCsize <- meanSkullCsize[order(match(meanSkullCsize[,1],rawTree$tip.label)),]
+
+#checks
+rownames(meanSkullCsize) == rawTree$tip.label
+dimnames(meanCoords)[[3]] == rawTree$tip.label
+rownames(meanSkullCsize) == dimnames(meanCoords)[[3]]
+
+
 allometry_gdf <- geomorph.data.frame(coords = meanCoords, Csize = meanSkullCsize$Csize, phy=rawTree)
 
 
@@ -120,7 +137,7 @@ allometry_fit <- procD.pgls(coords ~ log(Csize), phy=rawTree, data=allometry_gdf
 
 summary(allometry_fit)
 
-#Here, the residuals are appropriate
+#Here, the residuals are more appropriate
 plot(allometry_fit)
 
 Allom_PCA <- gm.prcomp(allometry_gdf$coords)
@@ -128,6 +145,10 @@ Allom_PCA <- gm.prcomp(allometry_gdf$coords)
 
 PCA_scores <-  as.data.frame(Allom_PCA$x)
 Csize_taxa <- data.frame(Csize=meanSkullCsize$Csize, species = meanSkullCsize$Taxon)
+
+#Check
+Csize_taxa$species ==rownames(Allom_PCA$x)
+
 Data_for_pgls <- cbind (PCA_scores, Csize_taxa)
 
 Csize_PCA_frame <- comparative.data( rawTree, Data_for_pgls, names.col = species)
@@ -136,6 +157,8 @@ test <- pgls(Comp1~ log(Csize), data=Csize_PCA_frame)
 
 
 summary(test)
+
+
 
 ```
 
@@ -160,7 +183,7 @@ pgls_PCA_table[,4] <- round(pgls_PCA_table[,4], 2)
 
 rownames(pgls_PCA_table)<- paste (rep("PC", PCs_tested), c(1:PCs_tested), sep="")
 
-write.csv(pgls_PCA_table, file="../Figures/pgls_PCA_table.csv")
+write.csv(pgls_PCA_table, file="./Figures/pgls_PCA_table.csv")
 
 
 ```
@@ -252,7 +275,7 @@ rm(new.subset, meanCoords, PCScores)
 #Note that PC2 is flipped but otherwise very similar to Fig. 1
 ```{r Plot}
 
-pdf(file="../Figures/Supp1_AMong_removed.pdf", width=10, height=10)
+pdf(file="./Figures/Supp1_AMong_removed.pdf", width=10, height=10)
 
 par(mfrow=c(2,2))
 
@@ -308,10 +331,10 @@ points(rostPlotData$Comp2 ~ rostPlotData$Comp1,
 
 plot(NULL,
      xlim = range(neurPlotData$Comp1),
-     ylim = range(neurPlotData$Comp2),
+     ylim = -range(neurPlotData$Comp2),
      asp = 1,
      xlab = "PC1",                       
-     ylab = "PC2",                       
+     ylab = "PC2 (flipped)",                       
      main = "Neurocranium")
 abline(h = 0, 
        col = "#545454", 
@@ -347,3 +370,274 @@ plot.new()
 dev.off()
 
 ```
+
+
+#Allometry of the various partitions - all without _Andrewsarchus_
+
+```{r}
+
+#take out Andrewsarchus
+
+rawTree <- drop.tip(phy = rawTree, tip = "Andrewsarchus_mongoliensis")
+
+#take out Andrewsarchus for all partitions
+
+partition_list_raw <- list(skull=skullLmkSymm, rostral=rostralLmkSymm, neuro=neuroLmkSymm, fnp=fnpLmkSymm, pa=paLmkSymm, mes=mesLmkSymm)
+partition_list_noAnd <- list(skull=NULL, rostral=NULL, neuro=NULL, fnp=NULL, pa=NULL, mes=NULL)
+
+meancoords_noAnd <- list(skull=NULL, rostral=NULL, neuro=NULL, fnp=NULL, pa=NULL, mes=NULL)
+
+for(i in 1:length(partition_list_noAnd)){
+
+partition_list_noAnd[[i]] <-coords.subset(A = partition_list_raw[[i]]$symm.shape[,,-1],
+                           group = droplevels(pointLabels$Taxon[-1])) ##THIS IS NOW ALPHABETICAL
+meancoords_noAnd[[i]] <- sapply(partition_list_noAnd[[i]], 
+                      mshape, 
+                      simplify = "array") ##THIS IS NOW ALPHABETICAL
+#reorder coords to fit the tree
+meancoords_noAnd[[i]] <- meancoords_noAnd[[i]][,,order(match(dimnames(meancoords_noAnd[[i]])[[3]],rawTree$tip.label))]
+
+}
+
+#Check
+rawTree$tip.label == dimnames(meancoords_noAnd[[3]]) [[3]]
+
+#Csizes
+
+csizes_noAnd <- list(skull=NULL, rostral=NULL, neuro=NULL, fnp=NULL, pa=NULL, mes=NULL)
+meanSkullCsize_noAnd <- list(skull=NULL, rostral=NULL, neuro=NULL, fnp=NULL, pa=NULL, mes=NULL)
+
+for(i in 1:length(partition_list_noAnd)){
+  
+csizes_noAnd[[i]] <- as.numeric(get(paste(names(csizes_noAnd)[i], "GPA", sep=""))$Csize)[-1]  
+ 
+meanSkullCsize_noAnd[[i]] <- aggregate(csizes_noAnd[[i]], 
+                       by = list(pointLabels$Taxon[-1]), 
+                       FUN = mean) ##THIS IS NOW ALPHABETICAL
+
+rownames(meanSkullCsize_noAnd[[i]]) <- meanSkullCsize$Group.1
+colnames(meanSkullCsize_noAnd[[i]]) <- c("Taxon", "Csize")
+meanSkullCsize_noAnd[[i]] <- droplevels(meanSkullCsize_noAnd[[i]]) 
+ 
+#rearrange to fit tree
+meanSkullCsize_noAnd[[i]] <- meanSkullCsize_noAnd[[i]][order(match(meanSkullCsize_noAnd[[i]][,1],rawTree$tip.label)),] 
+  
+  
+  
+}
+
+#Now for the allometry analyses
+
+#quick check that all lines up
+meanSkullCsize_noAnd[[1]]$Taxon==dimnames(meancoords_noAnd$skull)[[3]]
+dimnames(meancoords_noAnd$skull)[[3]] == rawTree$tip.label
+
+allometry_gdfs <- list(skull=NULL, rostral=NULL, neuro=NULL, fnp=NULL, pa=NULL, mes=NULL)
+allometry_fits <- list(skull=NULL, rostral=NULL, neuro=NULL, fnp=NULL, pa=NULL, mes=NULL)
+
+for (i in 1:length(partition_list_noAnd)){
+  
+allometry_gdfs[[i]] <- geomorph.data.frame(coords = meancoords_noAnd[[i]], Csize = meanSkullCsize_noAnd[[i]]$Csize, taxon = meanSkullCsize_noAnd[[i]]$Taxon, phy=rawTree)  
+
+allometry_fits[[i]] <- summary(procD.pgls(coords ~ log(Csize), phy=rawTree, data=allometry_gdfs[[i]]))
+
+}
+
+#make output table
+
+allometry_output <- matrix(nrow=length(partition_list_noAnd), ncol=length(allometry_fits$skull$table[1,]))
+rownames(allometry_output) <- names(partition_list_noAnd)
+colnames(allometry_output) <- colnames(allometry_fits$skull$table[1,] )
+
+for (i in 1:length(partition_list_noAnd)){
+  
+ allometry_output[i,]<- unlist(allometry_fits[[i]]$table[1,])
+  
+  
+}
+
+#just so the processed talbe doesn't overwrite the previous
+allometry_output_table <- allometry_output
+
+allometry_output_table[,c(2,3,5,6,7)] <- sprintf("%.3f", allometry_output[,c(2,3,5,6,7)] )
+allometry_output_table[,c(4)] <- sprintf("%.2f", allometry_output[,c(4)])
+
+allometry_output_table<- allometry_output_table[,-c(1,2)]
+
+allometry_output_table 
+
+?procD.pgls
+
+write.csv(allometry_output_table, file = "./Figures/Allometry_output.csv")
+
+```
+
+#adding the PCA thingy
+
+```{r}
+
+Allom_PCAs <- list(skull=NULL, rostral=NULL, neuro=NULL, fnp=NULL, pa=NULL, mes=NULL)
+ temp <-NULL
+
+for (i in 1:length(Allom_PCAs)){
+  
+temp<- gm.prcomp(allometry_gdfs[[i]]$coords)
+Allom_PCAs[[i]]$PCA_Csize <- cbind(as.data.frame(temp$x), as.numeric(allometry_gdfs[[i]]$Csize), as.character(allometry_gdfs[[i]]$taxon))
+
+#soft coding this, messy but safer in case the pc numbers change
+colnames(Allom_PCAs[[i]]$PCA_Csize)[length(colnames(Allom_PCAs[[i]]$PCA_Csize))-1] <- "Csize"
+colnames(Allom_PCAs[[i]]$PCA_Csize)[length(colnames(Allom_PCAs[[i]]$PCA_Csize))]<- "species"
+Allom_PCAs[[i]]$phy <-allometry_gdfs[[i]]$phy 
+
+
+  
+}
+
+
+
+#Check checking
+rownames(Allom_PCAs$rostral$PCA_Csize) == Allom_PCAs$neuro$phy$tip.label
+Allom_PCAs$rostral$PCA_Csize$species == Allom_PCAs$neuro$phy$tip.label
+  
+
+Csize_PCA_frames <- list(skull=NULL, rostral=NULL, neuro=NULL, fnp=NULL, pa=NULL, mes=NULL)
+
+for(i in 1:length(Csize_PCA_frames)){
+
+Csize_PCA_frames [[i]] <- comparative.data( rawTree , 
+                                            Allom_PCAs[[i]]$PCA_Csize, 
+                                            'species')
+
+}
+
+
+# #This is a test to make sure this really works - the result is the same as a previous analysis that worked
+
+
+# test_data_frame <- Allom_PCAs$skull$PCA_Csize[,1:(length(colnames(Allom_PCAs[[i]]$PCA_Csize)))]
+# test_tree <- rawTree
+# testnames <- as.character(Allom_PCAs[[i]]$PCA_Csize[length(colnames(Allom_PCAs[[i]]$PCA_Csize))])
+# 
+# test_comparative_data <- comparative.data(rawTree, 
+#                                            Allom_PCAs$skull$PCA_Csize[,1:(length(colnames(Allom_PCAs[[i]]$PCA_Csize)))], 
+#                                            'species' )
+# 
+# 
+# 
+
+# test <- pgls(Comp1 ~ log(Csize), data =Csize_PCA_frames$skull )
+# summary(test)
+
+#Setting up output tables
+PCs_tested <- 10
+pgls_PCA_table <- matrix(nrow=PCs_tested, ncol = 5)
+colnames(pgls_PCA_table) <- c("Estimate",  "Std. Error",   "t value", "Rsq", "p")
+rownames(pgls_PCA_table)<- paste (rep("PC", PCs_tested), c(1:PCs_tested), sep="")
+
+
+comparative_data_PCA_outputs <- list(skull=pgls_PCA_table, rostral=pgls_PCA_table, neuro=pgls_PCA_table, fnp=pgls_PCA_table, pa=pgls_PCA_table, mes=pgls_PCA_table)
+
+
+for (i in 1: length(Csize_PCA_frames)){
+  
+  for (j in 1: PCs_tested){
+  
+    
+  temp <- summary(pgls( get(paste("Comp", j, sep="")) ~ log(Csize), data=Csize_PCA_frames[[i]]))
+  
+  comparative_data_PCA_outputs[[i]] [j,1:3]<- sprintf("%.3f",temp$coefficients[2,1:3])
+ comparative_data_PCA_outputs[[i]][j,4]<- sprintf("%.2f", temp$r.squared)
+ comparative_data_PCA_outputs[[i]][j,5]<- sprintf("%.3f", temp$coefficients[2,4])
+ 
+  }
+  
+}
+
+  
+
+comparative_data_PCA_outputs$neuro
+
+#OK packaging all of this into one huge table. stringsAsFactors = FALSE makes it so not everything turns into a character
+
+PCA_All_outputs <-data.frame( rbind(c("Cranium", rep(NA, ncol(comparative_data_PCA_outputs$skull)-2)), comparative_data_PCA_outputs$skull[,-1],
+      c("Rostrum", rep(NA, ncol(comparative_data_PCA_outputs$rostral)-2)), comparative_data_PCA_outputs$rostral[,-1],
+      c("Neurocranium", rep(NA, ncol(comparative_data_PCA_outputs$neuro)-2)), comparative_data_PCA_outputs$neuro[,-1],
+      c("Frontonasal Process", rep(NA, ncol(comparative_data_PCA_outputs$fnp)-2)), comparative_data_PCA_outputs$fnp[,-1],
+      c("First Pharyngeal Arch", rep(NA, ncol(comparative_data_PCA_outputs$pa)-2)), comparative_data_PCA_outputs$pa[,-1],
+      c("Paraxial Mesoderm", rep(NA, ncol(comparative_data_PCA_outputs$mes)-2)), comparative_data_PCA_outputs$mes[,-1]
+),stringsAsFactors = FALSE)
+
+
+
+write.csv(PCA_All_outputs, file="./Figures/pgls_PCA_tables.csv")
+
+
+
+#because this is a lot of coding and potential for human error, I'm here running the PCAs work - it checks out.
+
+# plot(Csize_PCA_frames$skull$data$Comp2~Csize_PCA_frames$skull$data$Comp1, asp=TRUE)
+# text(Csize_PCA_frames$skull$data$Comp2~Csize_PCA_frames$skull$data$Comp1, asp=TRUE, labels=rownames(Csize_PCA_frames$skull$data) )
+# 
+
+```
+
+
+# ```{r}
+# 
+# #this is the code for just one variable
+# 
+# 
+# PCs_tested <- 10
+# pgls_PCA_table <- matrix(nrow=PCs_tested, ncol = 5)
+# colnames(pgls_PCA_table) <- c("Estimate",  "Std. Error",   "t value", "Rsq", "p")
+# 
+# for (i in 1:PCs_tested){
+# 
+#   temp <- summary(pgls( get(paste("Comp", i, sep="")) ~ log(Csize), data=Csize_PCA_frame))
+# 
+#  pgls_PCA_table[i,1:3]<- temp$coefficients[2,1:3]
+#  pgls_PCA_table[i,4]<- temp$r.squared
+#  pgls_PCA_table[i,5]<- temp$coefficients[2,4]
+# 
+# }
+# 
+# pgls_PCA_table[,c(1:3, 5)] <- round(pgls_PCA_table[,c(1:3, 5)], 3)
+# pgls_PCA_table[,4] <- round(pgls_PCA_table[,4], 2)
+# 
+# rownames(pgls_PCA_table)<- paste (rep("PC", PCs_tested), c(1:PCs_tested), sep="")
+# 
+# write.csv(pgls_PCA_table, file="./Figures/pgls_PCA_table.csv")
+# 
+# 
+# ```
+
+
+
+#Making Table 1 - allometry
+```{r}
+
+allometry_output_table
+
+PC12_list <- matrix(nrow=length(comparative_data_PCA_outputs), ncol=4)
+
+for (i in 1:length(comparative_data_PCA_outputs)){
+  
+PC12_list[i,] <- c (comparative_data_PCA_outputs[[i]][c(1), c(4,5)], comparative_data_PCA_outputs[[i]][c(2), c(4,5)])
+}
+
+
+Table_1 <- cbind(allometry_output_table, PC12_list)
+
+colnames(Table_1)[c(5:9)]<- c("p", "PC1_Rsq", "PC1_p", "PC2_Rsq", "PC2_p")
+
+
+Table_1 <- data.frame(Table_1, stringsAsFactors = FALSE)
+
+write.csv(Table_1, file="./Figures/Table_1_Allometry.csv")
+
+```
+
+
+
+
+

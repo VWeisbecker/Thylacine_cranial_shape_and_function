@@ -1,0 +1,526 @@
+---
+title: "Rosette_Analysis"
+author: "DSRovinsky"
+date: "2023-01-17"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load packages}
+library(geomorph)
+library(ape)
+library(geiger)
+library(nlme)
+library(dplyr)
+library(svglite)
+library(here)
+library(Ternary)
+library(Rvcg)
+
+# Load phylogeny: this is the composite tree from Rovinsky et al., 2021, with the fossil taxa added
+phyTree <- read.tree(here::here("Data", "phyloGMM.tre"))
+load(here("Data", "Processed", "rawPoints.rda"))
+pointLabels <- readRDS(here("Data", "Processed", "pointLabels.rds"))
+```
+
+```{r Functions}
+source(here::here("Functions", "Fun.R"))
+```
+
+
+#Creating interlandmark distances: first read in coordinates, then find inter-landmark distances, then average these by species
+
+
+# matrix of landmarks to measure
+# here we are going to measure the distance between lmks 6 & 7, and between lmks 68 & 73
+```{r}
+lmk_vector <- c(6,7, 68,73,374, 47)
+lmks <- matrix(lmk_vector, 
+               ncol = 2, 
+               byrow = TRUE, 
+               dimnames = list(c("Canine", "Pinch", "Height"),
+                               c("start", "end")))
+
+# calculate the distances for the  lmks for all specimens
+linearDists_allspecies <- interlmkdist(rawPoints$coords, lmks) 
+
+#now average these for each species. I checked a couple of species manually and all is good. Making it readable for the next step but make sure this chunk gets run only once because it's deleting a column!
+linearDists <- aggregate(linearDists_allspecies, by=list(pointLabels$Taxon), FUN=mean)
+rownames(linearDists) <- linearDists$Group.1
+linearDists <- linearDists[,-1]
+
+```
+
+```{r}
+# 
+
+# 
+#mesh <- vcgPlyRead("./Data/ThCy5749CRA.ply")
+# 
+# # #a little code to set the cranial orientations for later plotting more easily
+# # FOV = 0 # sets parallel projection, rather than orthogonal
+# # open3d(); view3d(fov=0);shade3d(mesh) # open a mesh on rgl
+# # # # set by hand in rgl window, adjust specimen into dorsal positon then:
+# # usrMat_dorsal <- par3d()$userMatrix # save position matrix
+# # write.csv(usrMat_dorsal, "./Figures/Usrmats/mesh_usrMat_dorsal.csv",row.names=F) # write to WD for later
+# # usrMat_lateral <- par3d()$userMatrix # again, adjust specimen into lateral positon then save
+# # write.csv(usrMat_lateral, "./Figures/Usrmats/mesh_usrMat_lateral.csv",row.names=F)
+# # usrMat_ventral <- par3d()$userMatrix
+# # write.csv(usrMat_ventral, "./Figures/Usrmats/mesh_usrMat_ventral.csv",row.names=F)
+# # usrMat_frontal<- par3d()$userMatrix
+# # write.csv(usrMat_frontal, "./Figures/Usrmats/mesh_usrMat_frontal.csv",row.names=F)
+# 
+# 
+# # Then you can import for use like:
+ usrMat_dorsal <- as.matrix(read.csv("./Figures/Usrmats/mesh_usrMat_dorsal.csv", header = T))
+ usrMat_lateral <- as.matrix(read.csv("./Figures/Usrmats/mesh_usrMat_lateral.csv", header = T))
+ usrMat_ventral <- as.matrix(read.csv("./Figures/Usrmats/mesh_usrMat_ventral.csv", header = T))
+usrMat_frontal <- as.matrix(read.csv("./Figures/Usrmats/mesh_usrMat_frontal.csv", header = T))
+# 
+# #Just checking that the order and content of point labels and raw points are the same - all good
+rawPoints$labels==pointLabels
+
+
+```
+
+```{r distances figure}
+
+# #mesh and sphere colouration
+# #Spheres
+#   Colours <- "turquoise"
+#   Distballs <- "darkmagenta"
+# #Mesh
+#   Meshcol <- "mistyrose1"
+# #ball radius
+#   Radius_base  <- 1.5
+# #measurement radius
+#   Radius_distpoints <- 2
+# #line widths
+#   linewd <- 5
+# #zoom
+#   zoom=0.9
+# 
+# #pdf(file="./Figures/distances.pdf", width = 8, height = 16)
+#   #Overall image specs
+# 
+# open3d(FOV=0,windowRect=c(0,0,1200,1200), zoom=zoom )
+# 
+# #set up image with three subscenes in one column
+# 
+# mfrow3d(2,2)
+# par(mar = c(0,0,0,0))
+# par(oma = c(0,0,0,0))
+# 
+# usrmats <- list(usrMat_dorsal, usrMat_lateral,usrMat_ventral,usrMat_frontal)
+# 
+# 
+# for (i in 1:length(usrmats)){
+# 
+# 
+# 
+# shade3d (mesh, col= Meshcol, tran = par3d(userMatrix=usrmats[[i]] ), alpha=0.3)#
+# 
+# spheres3d(rawPoints$coords [,, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Colours, radius=1.5)
+# spheres3d(rawPoints$coords [lmk_vector,, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, radius=2)
+# 
+# lines3d(rawPoints$coords [lmk_vector[1:2],, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, lwd=5)
+# lines3d(rawPoints$coords [lmk_vector[3:4],, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, lwd=5)
+# lines3d(rawPoints$coords [lmk_vector[5:6],, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, lwd=5)
+# 
+# 
+#   if (!i == length(usrmats)){next3d()}
+#   else {stop}
+#   }
+# 
+# #Now you have to manually zoom in on just the frontal view
+# 
+# 
+# 
+# 
+# 
+# rgl.snapshot(filename = "./Figures/Supp__distances.png")
+
+
+```
+#Here, we're making a dataset of log 10 transformed linear distances for all three - dataRosette
+```{r Set up data for analysis}
+
+
+# get pointLabels for each species
+taxaSet <- unique(pointLabels) %>% arrange(Taxon)
+
+#Just checking!
+taxaSet$Taxon == rownames(linearDists)
+
+# combine data
+dataRosette <- as.data.frame(cbind(taxaSet, log10(linearDists)))
+row.names(dataRosette) <- dataRosette$Taxon
+# re-order data to tree tip order
+dataRosette <- dataRosette[order(match(dataRosette[,3],phyTree$tip.label)),]
+name.check(phy = phyTree, 
+           data = dataRosette, 
+           data.names = dataRosette$Taxon)
+plotData <- dataRosette
+```
+
+#Here, we create the datasets for prediction interval analysis. the dataPGLS object now contains all data except Andrewsarchus and Thylacinus
+
+```{r PGLS data}
+phyPGLS <- drop.tip(phy = phyTree, tip = c("Andrewsarchus_mongoliensis", "Thylacinus_cynocephalus"))
+specList <- as.character(phyPGLS$tip.label)
+#dataPGLS has no thylacine and Andrewsarchus
+dataPGLS <- dataRosette[which(dataRosette$Taxon != c("Andrewsarchus_mongoliensis", "Thylacinus_cynocephalus")),]
+dataPGLS <- droplevels(dataPGLS)
+name.check(phy = phyPGLS, 
+           data = dataPGLS, 
+           data.names = dataPGLS$Taxon)
+
+# phylogeny includes fossils (is not ultrametric) so we need to add weights
+tW <- diag(vcv(phyPGLS)) # tree weights
+```
+
+
+#These are fits without the thylacine and Andrewsarchus. 
+```{r Model fit}
+fit1 <- gls(Canine ~ Pinch, 
+               data = dataPGLS, 
+               correlation = corBrownian(value = 1, 
+                                      phy = phyPGLS,
+                                      form = ~specList),
+               method = "REML",
+               weights = varFixed(~tW))
+
+fit2 <- gls(Canine ~ Pinch, 
+               data = dataPGLS, 
+               correlation = corPagel(value = 1, 
+                                      phy = phyPGLS, 
+                                      fixed = FALSE,
+                                      form = ~specList),
+               method = "REML",
+               weights = varFixed(~tW))
+
+fit3 <- gls(Canine ~ Pinch, 
+               data = dataPGLS, 
+               correlation = corBrownian(value = 1, 
+                                      phy = phyPGLS,
+                                      form = ~specList),
+               method = "ML",
+               weights = varFixed(~tW))
+
+fit4 <- gls(Canine ~ Pinch, 
+               data = dataPGLS, 
+               correlation = corPagel(value = 1, 
+                                      phy = phyPGLS, 
+                                      fixed = FALSE,
+                                      form = ~specList),
+               method = "ML",
+               weights = varFixed(~tW))
+anova(fit1, fit2)
+anova(fit3, fit4)
+```
+
+#These are fits without the thylacine and Andrewsarchus
+```{r PGLS Regression}
+rosettePGLS_width <- fit4
+
+L = rosettePGLS_width$modelStruct$corStruct[1]
+
+rosetteCI_width <- gls.ci(Y = as.numeric(dataPGLS$Canine),
+                    X = as.numeric(dataPGLS$Pinch),
+                    Sigma = vcv(corPagel(value = L,
+                                       phy = phyPGLS,
+                                       fixed = TRUE,
+                                       form = ~specList)))
+
+
+# 95% prediction interval without the thylacine and Andrewsarchus
+
+rosettePI_width <- gls.pi(Y = as.numeric(dataPGLS$Canine),
+                    X = as.numeric(dataPGLS$Pinch),
+                    Sigma = vcv(corPagel(value = L,
+                                       phy = phyPGLS,
+                                       fixed = TRUE,
+                                       form = ~specList)),
+                  k = 2)
+
+```
+
+#These are fits with the whole dataset
+```{r Full PGLS}
+specList2 <- as.character(phyTree$tip.label)
+tWFull <- diag(vcv(phyTree))
+fullPGLS_width <- gls(Canine ~ Pinch, 
+               data = dataRosette, 
+               correlation = corPagel(value = 1, 
+                                      phy = phyTree, 
+                                      fixed = FALSE,
+                                      form = ~specList2),
+               method = "ML",
+               weights = varFixed(~tWFull))
+```
+
+
+
+###Same for the height
+
+
+
+```{r Model fit}
+fit1 <- gls(Height ~ Pinch, 
+               data = dataPGLS, 
+               correlation = corBrownian(value = 1, 
+                                      phy = phyPGLS,
+                                      form = ~specList),
+               method = "REML",
+               weights = varFixed(~tW))
+
+fit2 <- gls(Height ~ Pinch, 
+               data = dataPGLS, 
+               correlation = corPagel(value = 1, 
+                                      phy = phyPGLS, 
+                                      fixed = FALSE,
+                                      form = ~specList),
+               method = "REML",
+               weights = varFixed(~tW))
+
+fit3 <- gls(Height ~ Pinch, 
+               data = dataPGLS, 
+               correlation = corBrownian(value = 1, 
+                                      phy = phyPGLS,
+                                      form = ~specList),
+               method = "ML",
+               weights = varFixed(~tW))
+
+fit4 <- gls(Height ~ Pinch, 
+               data = dataPGLS, 
+               correlation = corPagel(value = 1, 
+                                      phy = phyPGLS, 
+                                      fixed = FALSE,
+                                      form = ~specList),
+               method = "ML",
+               weights = varFixed(~tW))
+anova(fit1, fit2)
+anova(fit3, fit4)
+```
+
+```{r PGLS Regression}
+rosettePGLS_height <- fit4
+
+L = rosettePGLS_height$modelStruct$corStruct[1]
+
+RosetteCI_height <- gls.ci(Y = as.numeric(dataPGLS$Height),
+                    X = as.numeric(dataPGLS$Pinch),
+                    Sigma = vcv(corPagel(value = L,
+                                       phy = phyPGLS,
+                                       fixed = TRUE,
+                                       form = ~specList)))
+
+
+# 95% prediction interval without the thylacine and Andrewsarchus
+
+RosettePI_height <- gls.pi(Y = as.numeric(dataPGLS$Height),
+                    X = as.numeric(dataPGLS$Pinch),
+                    Sigma = vcv(corPagel(value = L,
+                                       phy = phyPGLS,
+                                       fixed = TRUE,
+                                       form = ~specList)),
+                  k = 2)
+
+```
+
+```{r Full PGLS}
+specList2 <- as.character(phyTree$tip.label)
+tWFull <- diag(vcv(phyTree))
+fullPGLS_height <- gls(Height ~ Pinch,
+               data = dataRosette, 
+               correlation = corPagel(value = 1, 
+                                      phy = phyTree, 
+                                      fixed = FALSE,
+                                      form = ~specList2),
+               method = "ML",
+               weights = varFixed(~tWFull))
+```
+
+```{r Plot data}
+
+#The colour scheme is the result of some experimentation and not optimised code-wise for this final published plot
+plotData$StemCol <- "#fff0e0" # 20% gray
+plotData$StemCol[plotData$Family == "Canidae"] <- "#ffaa5c" # yellow
+plotData$StemCol[plotData$Taxon == "Canis_lupus"] <- "#ffaa5c" # navy - to see position
+plotData$StemCol[plotData$Clade == "Metatheria"] <- "#e0f0ff" # blue
+plotData$StemCol[plotData$Taxon == "Thylacinus_cynocephalus"] <- "#c87ef8" # electric purple
+plotData$StemCol[plotData$Taxon == "Nimbacinus_dicksoni"] <- "#e6e6b8" # cream - to see position
+plotData$StemCol[plotData$Taxon == "Borhyaena_tuberata"] <- "#fff0e0" # red - to see position
+plotData$StemCol[plotData$Taxon == "Andrewsarchus_mongoliensis"] <- "#fff0e0" #  green - to see position
+
+plotData$PtCol <- "#fff0e0" # off-white
+plotData$PtCol[plotData$Family == "Canidae"] <- "#ffaa5c" 
+plotData$PtCol[plotData$Taxon == "Canis_lupus"] <- "#ffaa5c" # to see position
+plotData$PtCol[plotData$Taxon == "Crocuta_crocuta"] <- "#fff0e0" # to see position
+plotData$PtCol[plotData$Clade == "Metatheria"] <- "#e0f0ff"
+plotData$PtCol[plotData$Taxon == "Thylacinus_cynocephalus"] <- "#c87ef8"
+plotData$PtCol[plotData$Taxon == "Nimbacinus_dicksoni"] <- "#c87ef8" # cream - to see position
+plotData$PtCol[plotData$Taxon == "Borhyaena_tuberata"] <- "#e0f0ff" # red - to see position
+plotData$PtCol[plotData$Taxon == "Andrewsarchus_mongoliensis"] <- "#fff0e0" # green - to see position
+
+plotData$PtSet <- 21
+plotData$PtSet[plotData$Clade == "Metatheria"] <- 23
+
+```
+#stacked plots!
+
+```{r Regression plot}
+ svglite(filename = here::here("Figures", "rosette_Regression_stack.svg"), height = 9, width = 6)
+
+par(mfrow=c(2,1), mar=c(2,4,0,2))
+
+
+
+plot(NULL,
+    xlim = c(1.2,2), # just a little more so the plot is nice and roomy
+     ylim = c(0.8,2.11),
+     asp = 1,
+     xlab = "Log10 interLmk width at rostral pinch",                       
+     ylab = "",  
+     #xaxt="n"
+     #main = "Rosette PGLS Regression"
+     )
+
+title(ylab="Log10 interLmk width at canine", line=2)
+
+polygon(c(rosettePI_width$PI.plot$X, rev (rosettePI_width$PI.plot$X)), 
+        c(rosettePI_width$PI.plot$Lower2.5, rev(rosettePI_width$PI.plot$Upper2.5)), 
+        col = "#e5e5e5", 
+        border = NA )
+abline(a = fullPGLS_width$coefficients[1], 
+       b = fullPGLS_width$coefficients[2], 
+       lty = "longdash",
+       lwd = 2, 
+       col = "red")
+lines(rosetteCI_width$CI.plot$X, 
+      rosetteCI_width$CI.plot$Lower2.5,
+      lty = 3)
+lines(rosetteCI_width$CI.plot$X, 
+      rosetteCI_width$CI.plot$Upper2.5,
+      lty = 3)
+abline(a = rosettePGLS_width$coefficients[1], 
+       b = rosettePGLS_width$coefficients[2], 
+       lty = "solid",
+       lwd = 2, 
+       col = "black")
+points(y = plotData$Canine, x = plotData$Pinch,
+              pch = plotData$PtSet,
+              col = "#000000",
+              bg = plotData$PtCol,
+              cex = 1.5,
+              xlab = "Body Mass (Log10 g)",                       
+              ylab = "Log10 Centroid size",                       
+              main = "Total set Csize")
+
+
+#This is needed so the polygon doesn't spill out
+box(lwd=1)
+
+#############Height. Note you can just re-set the mar() parameters for each individual plot - handy!
+#par(mar=c(1,4,0,2))
+
+plot(NULL,
+     xlim = c(1.2,2), # just a little more so the plot is nice and roomy
+     ylim = c(0.8,2.11), # just a little larger so the plot is nice and roomy
+     asp=1,
+     xlab = "",                       
+     ylab = ""  
+     
+     )
+
+
+
+title(xlab="Log10 interLmk width at rostral 'pinch'", line=2)
+title(ylab="Log10 interLmk height at rostral 'pinch'", line=2)
+
+
+
+polygon(c(RosettePI_height$PI.plot$X, rev (RosettePI_height$PI.plot$X)), 
+        c(RosettePI_height$PI.plot$Lower2.5, rev(RosettePI_height$PI.plot$Upper2.5)), 
+        col = "#e5e5e5", 
+        border = NA )
+abline(a = fullPGLS_height$coefficients[1], 
+       b = fullPGLS_height$coefficients[2], 
+       lty = "longdash",
+       lwd = 2, 
+       col = "red")
+lines(RosetteCI_height$CI.plot$X, 
+      RosetteCI_height$CI.plot$Lower2.5,
+      lty = 3)
+lines(RosetteCI_height$CI.plot$X, 
+      RosetteCI_height$CI.plot$Upper2.5,
+      lty = 3)
+abline(a = rosettePGLS_height$coefficients[1], 
+       b = rosettePGLS_height$coefficients[2], 
+       lty = "solid",
+       lwd = 2, 
+       col = "black")
+points(y = plotData$Height, x = plotData$Pinch,
+              pch = plotData$PtSet,
+              col = "#000000",
+              bg = plotData$PtCol,
+              cex = 1.5)
+#just to find some species
+#text(y = plotData$Height, x = plotData$Pinch, labels=plotData$Taxon, cex=0.5)
+#text(c(1.7,0.5), "test")
+
+#This is needed so the polygon doesn't spill out
+#box(lwd=1)
+
+
+legend("bottomright",
+       legend = c("Placentals", "Canids", "Metatherians",  "Thylacinids"),
+       pch = c(21, 21, 23, 23),
+       col = "#000000",
+       pt.bg = c("#fff0e0", "#ffaa5c", "#e0f0ff", "#c87cf8"),
+       bty = "n",
+       pt.cex = 1.5,
+       cex = 1,
+       text.col = "black",
+       horiz = F ,
+       inset = c(0.01, 0.0), 
+       ncol=2, 
+       x.intersp=2,
+       y.intersp=1.2)
+box(col = "#000000")
+
+
+
+dev.off()
+```
+
+
+#Trying something new here - ternary plots! Not in ms but fun to do
+
+```{r}
+
+
+par(mar=c(0,0,0,0))
+
+#OMG this has to be a matrix
+Ternary_matrix <- as.matrix(plotData[,c("Canine", "Pinch", "Height")])
+
+TernaryPlot(point = "up", 
+            alab = "Canine width", blab = "Pinch width", clab = "Rostrum height",
+            region = Ternary_matrix)
+                        
+
+#A list, matrix, data.frame or vector in which each element (or row) specifies the three coordinates of a point in ternary space.
+TernaryPoints(Ternary_matrix, 
+              pch = plotData$PtSet,
+              bg = plotData$PtCol,
+              cex = 1)
+ 
+#it seems to summarise to me that it there is only one species where height dominates rostral dimensions; in addition, it shares an extremely narrow pinch with Andrewsarchus; as a result, it also has a fairly wide canine width relative to its rostrum height. I do feel that it summarises our conclusion quite well that we've got a uniquely tip-heavy animal here. 
+
+```
