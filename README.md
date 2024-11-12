@@ -14,7 +14,7 @@ Contains all data required to run the analyses, including the [landmark data](/D
 ## [Analyses](/Analyses)
 **These scripts save several outputs from raw data for downstream use**. These intermediate data are stored as .rda files in the [..Data/Processed](/Data/Processed) folder. These are too large to upload to GitHub so scripts must be run sequentially to generate these outputs. 
 
-* [**01_1_GMM_GPA.Rmd**](/Analysis/01_1_GMM_GPA.Rmd) extracts  3D coordinates from the original Viewbox file and prepares them for analysis. Runs GPA with bilateral symmetry for the whole cranium and all partitions and saves the results in .rda files in the [..Data/Processed](/Data/Processed) folder.
+* [**01_1_GMM_GPA.Rmd**](/Analyses/01_1_GMM_GPA.Rmd) extracts  3D coordinates from the original Viewbox file and prepares them for analysis. Runs GPA with bilateral symmetry for the whole cranium and all partitions and saves the results in .rda files in the [..Data/Processed](/Data/Processed) folder.
 
 
 * [**01_2_Allometry.Rmd**](Analyses/01_2_Allometry.Rmd) computes analyses of allometry for Supplementary Notes 1.
