@@ -32,7 +32,7 @@ Contains all data required to run the analyses, including the [landmark data](/D
 
 * [**07_Cranial_Linear_Metrics.Rmd**](Analyses/07_Cranial_Linear_Metrics.Rmd) computes regression comparisons between linear measurements _versus_ the geometric mean of all measurements for Fig. 4 and Supp. Table 1.
 
-* [**08_Terminal_Rosette_Analysis.Rmd**](Analyses/08_Terminal_Rosette_Analysis.Rmd) produces the outputs for the "rostral pinch" Fig. 5
+* [**08_Terminal_Rosette_Analysis.Rmd**](Analyses/Terminal_Rosette_Analysis_for_stacked_figure.Rmd) produces the outputs for the "rostral pinch" Fig. 5
 
 * [**09_IOF.Rmd**](Analyses/09_IOF.Rmd) produces the outputs of Fig. 6 of comparative size of the infraorbital foramen. 
 
