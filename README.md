@@ -9,7 +9,7 @@ This project is licensed under the terms of the [GNU General Public License, ver
 
 ## [Data](/Data)
 
-Contains all data required to run the analyses, including the [landmark data](/Data/BWT_ABN_lmks.txt) with associated [landmark pairings](/Data/LmkPairs_adj.csv), [development-based partitions](/Data/Sets_Newtonetal2021.csv), and [phylogeny file](/Data/phyloGMM.tre); [body mass estimates for species](/Data/Body_mass.csv); [linear cranial morphometric data](/Data/Thylacine_Canis.csv); and [infraorbital foramen dataset collation](/Data/IOF_Data_Muchlinski.csv).
+Contains all data required to run the analyses, including the [landmark data](/Data/BWT_ABN_lmks.txt) with associated [landmark pairings](/Data/LmkPairs_v2.csv), [development-based partitions](/Data/Sets_Newtonetal2021.csv), and [phylogeny file](/Data/phyloGMM.tre); [body mass estimates for species](/Data/Body_mass.csv); [linear cranial morphometric data](/Data/Thylacine_Canis.csv); and [infraorbital foramen dataset collation](/Data/IOF_Data_Muchlinski.csv).
 
 
     
