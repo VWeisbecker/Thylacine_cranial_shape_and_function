@@ -1,5 +1,5 @@
 ## Code to replicate analyses and figures of the manuscript "Big heads and snapping bites: Skull shape of the extinct Tasmanian tiger suggests a unique hunting style"
-Manuscript authors: Douglass S Rovinsky, Andrew J Pask, Axel H Newton, and Vera Weisbecker
+Manuscript authors: Vera Weisbecker, Andrew J Pask, Axel H Newton, and Douglass S Rovinsky
 
 Code authors: Douglass S Rovinsky, Vera Weisbecker
 
