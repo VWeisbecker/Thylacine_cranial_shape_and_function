@@ -480,8 +480,8 @@ colList <- c("#d55e00", "#acd373", "#545454", "#E69f00", "#009e73", "#c87ef8", "
 # the output from smatr in order to make nice bespoke graphs.
 # I am not a clever person.
 
-svglite(filename = here::here("Figures", "LM_CARN.svg"),
-        height = 4.8, width = 6)
+# svglite(filename = here::here("Figures", "LM_CARN.svg"),
+#         height = 4.8, width = 6)
 plot(slope.CARN,
      lwd = 1,
      pch = 16,
@@ -497,13 +497,13 @@ legend("topleft",
        text.col = "black", 
        horiz = F , 
        inset = c(0.01, 0.0))
-dev.off()
+# dev.off()
 
 ```
 
 ```{r Rostral plot}
-svglite(filename = here::here("Figures", "LM_CB.svg"),
-        height = 4.8, width = 6)
+# svglite(filename = here::here("Figures", "LM_CB.svg"),
+#         height = 4.8, width = 6)
 plot(slope.CB,
      lwd = 1,
      pch = 16,
@@ -518,12 +518,12 @@ legend("topleft",
        text.col = "black", 
        horiz = F , 
        inset = c(0.01, 0.0))
-dev.off()
+# dev.off()
 ```
 
 ```{r Occipital condyle plot}
-svglite(filename = here::here("Figures", "LM_OCW_v2.svg"),
-        height = 4.8, width = 6)
+# svglite(filename = here::here("Figures", "LM_OCW_v2.svg"),
+#         height = 4.8, width = 6)
 plot(slope.OCW,
      lwd = 1,
      pch = 16,
@@ -538,12 +538,12 @@ legend("topleft",
        text.col = "black", 
        horiz = F , 
        inset = c(0.01, 0.0))
-dev.off()
+# dev.off()
 ```
 
 ```{r Palate plot}
-svglite(filename = here::here("Figures", "LM_PL.svg"),
-        height = 4.8, width = 6)
+# svglite(filename = here::here("Figures", "LM_PL.svg"),
+#         height = 4.8, width = 6)
 plot(slope.PL,
      lwd = 1,
      pch = 16,
@@ -558,12 +558,12 @@ legend("topleft",
        text.col = "black", 
        horiz = F , 
        inset = c(0.01, 0.0))
-dev.off()
+# dev.off()
 ```
 
 ```{r Zygomatic plot}
-svglite(filename = here::here("Figures", "LM_ZB.svg"),
-        height = 4.8, width = 6)
+# svglite(filename = here::here("Figures", "LM_ZB.svg"),
+#         height = 4.8, width = 6)
 plot(slope.ZB,
      lwd = 1,
      pch = 16,
@@ -578,6 +578,17 @@ legend("topleft",
        text.col = "black", 
        horiz = F , 
        inset = c(0.01, 0.0))
-dev.off()
+# dev.off()
 ```
+
+
+
+# Discussion
+The thylacine unsurprisingly tracks differently than the placental gray wolf or dingo. The thylacine overall has a longer rostrum (face) than either a wolf or dingo of similar size, and the rostral width at the canines and facial width at the carnassials --- both important areas regarding prey acquisition and processing --- are smaller for a given head size than seen in either placental comparative. The width at the carnassials is dramatically different, showing much a less robust midface than would be expected for the head size, especially as the animals' size increases. This isn't a "big-biting" face!
+
+Interestingly, the zygomatic width increases by a much higher factor than either the wolf or dingo. If we had a thylacine and a wolf of the same head 'size', the thylacine zygomatics would actually be wider than the wolf's! This is wicked-cool, and really kinda confusing; wide zygomatic arches usually house large muscles of mastication (mostly the temporalis & masseter), which would in turn imply a strong bite supported by a robust, stress-handling face. But we instead see a delicate face. Why is this? Dunno. Maybe it's part of intraspecific signalling? 
+It's been confusing since Steve Wroe looked at the results from two of his papers and said "those are two contradictory results, mate" (paraphrasing you Steve, please don't bite me)
+
+BONUS FEATURE: The occipital condyles are also much smaller than would be expected for the head size, in comparison to either the wolf or dingo. This suggests that the head size (as proxied by the Gmean) is large for the body size (mass - as proxied by the occipital condyle width a la Engelman 2022 "Occipital condyle width (OCW) is a highly accurate predictor of body mass in therian mammals" 10.1186/s12915-021-01224-9). 
+It's a relatively big but surprisingly delicate head for the body. Why? That's the million-dollar question.
 

@@ -1,0 +1,114 @@
+---
+title: "phyloMap_Tree_Figures"
+author: "DSRovinsky"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(phytools)
+library(svglite)
+library(here)
+```
+```{r Load data}
+Pdistance <- read.csv(here("Figures", "Combined_Procdist_table.csv"))
+tree <- read.tree(here("Data", "phyloGMM.tre"))
+tree <- drop.tip(tree, "Thylacinus_cynocephalus")
+```
+
+```{r Gather Procrustes distances}
+# Functional Procrustes distances
+CraniaPdist <- Pdistance$Cranium
+RostrumPdist <- Pdistance$Rostrum
+NeuroPdist <- Pdistance$Neurocranium
+names(CraniaPdist) <- Pdistance$X
+names(RostrumPdist) <- Pdistance$X
+names(NeuroPdist) <- Pdistance$X
+
+#Developmental Procrustes distances
+FNP_Pdist <- Pdistance$FNP
+PA_Pdist <- Pdistance$PA
+MES_Pdist <- Pdistance$Mes
+names(FNP_Pdist) <- Pdistance$X
+names(PA_Pdist) <- Pdistance$X
+names(MES_Pdist) <- Pdistance$X
+```
+
+```{r Map distances on tree}
+craniaMap <- contMap(tree = tree, 
+                x = CraniaPdist, 
+                res = 300, 
+                fsize = c(.6, .75))
+rostrumMap <- contMap(tree = tree, 
+                x = RostrumPdist, 
+                res = 300, 
+                fsize = c(.6, .75))
+neuroMap <- contMap(tree = tree, 
+                      x = NeuroPdist, 
+                      res = 300, 
+                      fsize = c(.6, .75))
+FNPMap <- contMap(tree = tree, 
+                     x = FNP_Pdist, 
+                     res = 300, 
+                     fsize = c(.6, .75))
+PAMap <- contMap(tree = tree, 
+                      x = PA_Pdist, 
+                      res = 300, 
+                      fsize = c(.6, .75))
+MESMap <- contMap(tree = tree, 
+                    x = MES_Pdist, 
+                    res = 300, 
+                    fsize = c(.6, .75))
+```
+
+```{r Colour schemes for fig}
+# Note that the data is continuous, quantitative, and unidirectional, not divergent or qualitative. 
+# Colour scheme should reflect that while being as 'readable' as possible.
+
+cMap<-setMap(craniaMap,c("#14181a","#1680a4","#d0d1e6","#fef1e0"))
+rMap<-setMap(rostrumMap,c("#141a16","#72c496","#b4d8a2","#fef1e0"))
+nMap<-setMap(neuroMap,c("#1a1009","#ba5800","#ebcbc7","#f1eef6"))
+
+pMap<-setMap(PAMap,c("#14181a","#56b4e9","#d0d1e6","#fef1e0"))
+mMap<-setMap(MESMap,c("#1a1417","#cc79a7","#d0d1e6","#f1eef6"))
+fMap<-setMap(FNPMap,c("#1a1509","#e69f00","#ebcbc7","#f1eef6"))
+```
+
+```{r Plot Functional figures}
+svglite(filename = here("Figures", "CranialPdist.svg"))  
+plot(cMap2, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
+title(main = "Cranial Pdist")
+dev.off()
+
+svglite(filename = here("Figures", "RostralPdist.svg"))  
+plot(rMap2, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
+title(main = "Rostral Pdist")
+dev.off()
+
+svglite(filename = here("Figures", "NeurocranialPdist.svg"))  
+plot(nMapInv, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
+title(main = "Neurocranial Pdist")
+dev.off()
+```
+
+```{r Plot Developmental figures}
+svglite(filename = here("Figures", "FNPPdist.svg"))  
+plot(fMap, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
+title(main = "FNP Pdist")
+dev.off()
+
+svglite(filename = here("Figures", "PAPdist.svg"))  
+plot(pMap, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
+title(main = "PA Pdist")
+dev.off()
+
+svglite(filename = here("Figures", "MESPdist.svg"))  
+plot(mMap, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
+title(main = "MES Pdist")
+dev.off()
+```
+

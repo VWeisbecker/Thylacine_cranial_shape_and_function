@@ -13,10 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r Load packages}
-library(geomorph) # CRAN v4.0.7
-library(shapes)   # CRAN v1.2.7
-library(dplyr)    # CRAN v1.1.4
-library(here)     # CRAN v1.0.1
+library(geomorph) # Geometric Morphometric Analyses of 2D and 3D Landmark Data CRAN v4.0.10 
+library(dplyr) # A Grammar of Data Manipulation CRAN v1.1.4    
+library(here) # A Simpler Way to Find Your Files CRAN v1.0.1     
 ```
 
 ```{r Read data}
@@ -225,9 +224,9 @@ fnpLmkSymm <- bilat.symmetry(A = fnpGPA,
 ```
 
 ```{r Just checking}
- # spheres3d(fnpLmkSymm$symm.shape[,,"Cuon_alpinus_56621"],
- #           radius = 0.005,
- #           color= "black")
+ spheres3d(fnpLmkSymm$symm.shape[,,"Andrewsarchus_mongoliensis_20135"],
+           radius = 0.004,
+           color= "black")
 ```
 
 ```{r}
@@ -268,20 +267,16 @@ paLmkSymm <- bilat.symmetry(A = paGPA,
                               RRPP = TRUE,
                               iter = 999)
 ```
-
-```{r}
-save(paLmkSymm, paCsize, file = here("Data", "Processed", "paLmkSymm.rda"))
-```
-
 ```{r Check}
-# spheres3d(paLmkSymm$symm.shape[,,"Cuon_alpinus_56621"],
-#           radius = 0.003,
-#           color= "black")
+spheres3d(paLmkSymm$symm.shape[,,"Andrewsarchus_mongoliensis_20135"],
+          radius = 0.004,
+          color= "black")
 ```
 
 ```{r}
 save(paLmkSymm, paCsize, file = here("Data", "Processed", "paLmkSymm.rda"))
 ```
+
 
 #### MES
 ```{r gather lmks}
@@ -319,12 +314,13 @@ mesLmkSymm <- bilat.symmetry(A = mesGPA,
 ```
 
 ```{r Check}
-# spheres3d(mesLmkSymm$symm.shape[,,"Cuon_alpinus_56621"],
-#           radius = 0.003,
-#           color= "black")
+spheres3d(mesLmkSymm$symm.shape[,,"Andrewsarchus_mongoliensis_20135"],
+          radius = 0.004,
+          color= "black")
 ```
 
 ```{r}
  save(mesLmkSymm, mesCsize, file = here("Data", "Processed", "mesLmkSymm.rda"))
 ```
+
 

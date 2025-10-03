@@ -41,15 +41,15 @@ treeTips <- read.csv(here::here("Data", "Tree_tips.csv")) # .csv of the tips for
 
 ```{r Data manipulation}
 # Do some dataframe manipulation
-workData <- rawData[,1:5]
+workData <- rawData[,1:6]
 # These PtSets seem suspicious to me. Get them outta here!
 workData <- workData[- which(workData$Species == "Tarsipes_rostratus"),]
 workData <- workData[- which(workData$Species == "Ommatophoca_rossii"),]
 
-workData$Group[workData$Group == "Pinniped"] <- "Placental" # these categories aren't needed for us
-workData$Group[workData$Group == "Fissiped"] <- "Placental" # these categories aren't needed for us
+workData$Group[workData$Group_dasyurids == "Pinniped"] <- "Placental" # these categories aren't needed for us
+workData$Group[workData$Group_dasyurids == "Fissiped"] <- "Placental" # these categories aren't needed for us
 workData$Group[workData$Group == "Marsupial"] <- "Metatheria" # these categories aren't needed for us
-workData$Group[workData$Group == "Sparassodonta"] <- "Metatheria" # these categories aren't needed for us
+workData$Group[workData$Group_dasyurids == "Sparassodonta"] <- "Metatheria" # these categories aren't needed for us
 
 workData$log_GM <- log10(workData$GM_mean)
 workData$log_IOF <- log10(workData$IOF_mean)
@@ -76,16 +76,17 @@ rm(muchlinskiTips, pruned_MCC, treeTips)
 
 ```{r Convex hulls}
 # Generate convex hulls around the PtSets
-metatheriaHull <- workData[which(workData$Group == "Metatheria"),]
+marsupialHull1 <- workData[c(which(workData$Group_dasyurids == "Marsupial"), which(workData$Group_dasyurids == "Dasyuromorphia")),]
+marsupialHull <- workData[which(workData$Group == "Metatheria"),]
 placentalHull <- workData[which(workData$Group == "Placental"),]
 
 
 # metatheriaHull <- metatheriaHull[-which(metatheriaHull$Species == "Thylacinus_cynocephalus"),] # just for show
-metatheriaHull <- cbind(metatheriaHull$log_Mass, metatheriaHull$log_IOF)
+marsupialHull <- cbind(marsupialHull1$log_Mass, marsupialHull1$log_IOF)
 placentalHull <- cbind(placentalHull$log_Mass, placentalHull$log_IOF)
 
 
-mHpts <- chull(metatheriaHull)
+mHpts <- chull(marsupialHull)
 mHpts <- c(mHpts, mHpts[1])
 
 pHpts <- chull(placentalHull)
@@ -99,31 +100,32 @@ IOFplotData <- workData
 IOFplotData$PtCol <- "#fff0e0"
 IOFplotData$PtCol[IOFplotData$Group == "Metatheria"] <- "#e0f0ff" # blue
 IOFplotData$PtCol[IOFplotData$Species == "Thylacinus_cynocephalus"] <- "#c87ef8" # electric purple
-IOFplotData$PtCol[IOFplotData$Species == "Nimbacinus_dicksoni"] <- "#6b4d80" # dark purple - to see position
+IOFplotData$PtCol[IOFplotData$Species == "Nimbacinus_dicksoni"] <- "#c87ef8" # dark purple - to see position
 IOFplotData$PtCol[IOFplotData$Species == "Borhyaena_tuberata"] <- "#ca576c" # red - to see position
 IOFplotData$PtCol[IOFplotData$Species == "Prothylacinus_patagonicus"] <- "#ca576c" # red - to see position
-IOFplotData$PtCol[IOFplotData$Species == "Canis_lupus"] <- "#233045" # navy - to see position
+#IOFplotData$PtCol[IOFplotData$Species == "Canis_lupus"] <- "#233045" # navy - to see position
+IOFplotData$PtCol[IOFplotData$Group_dasyurids == "Dasyuromorphia"] <-"skyblue4"
+
 
 IOFplotData[,"PtSet"] <- NA
 IOFplotData$PtSet[IOFplotData$Group == "Placental"] <- 21
 IOFplotData$PtSet[IOFplotData$Group == "Metatheria"] <- 23
 
 
-
 ```
 
 # Plot
 ```{r IOF Plot}
-svglite(filename = here::here("Figures", "IOF_Mass_v3.svg"),
-        height = 5, width = 6)
+# svglite(filename = here::here("Figures", "IOF_Mass_v3.svg"),
+        # height = 5, width = 6)
 plot(NULL,
      xlim = range(IOFplotData$log_Mass),
      ylim = range(IOFplotData$log_IOF),
      xlab = "log10 Body Mass (g)",                       
      ylab = "log10 IOF (mm2)")
 polygon(placentalHull[pHpts, ],
-        col = adjustcolor("#808080", alpha.f = 0.33))
-polygon(metatheriaHull[mHpts, ],
+        col = adjustcolor("#f9dec1", alpha.f = 0.33))
+polygon(marsupialHull[mHpts, ],
         col = adjustcolor("#1680a4", alpha.f = 0.33))
 points(IOFplotData$log_Mass, IOFplotData$log_IOF,
        pch = IOFplotData$PtSet,
@@ -132,21 +134,21 @@ points(IOFplotData$log_Mass, IOFplotData$log_IOF,
        cex = 1.5)
 # text(IOFplotData$log_Mass, IOFplotData$log_IOF,  #for plotting species names
 #      IOFplotData$ID,
-#      cex=0.6,
-#      pos=1,
-#      offset = -0.6)
+#       cex=0.6,
+#       pos=1,
+#       offset = -0.6)
 legend("topleft", 
-       legend = c("Placentals", "Metatherians", "Thylacinids"), 
-       pch = c(21, 23, 23),
+       legend = c("Placentals", "Marsupials", "Dasyuromorphians","Sparassodonts", "Thylacinids"), 
+       pch = c(21, 23, 23, 23, 23),
        col = c("#000000", "#000000", "#000000"),
-       pt.bg = c("#fff0e0", "#e0f0ff", "#c87ef8"), 
+       pt.bg = c("#fff0e0", "#e0f0ff","skyblue4", "#ca576c","#c87ef8"), 
        bty = "n", 
        pt.cex = 2, 
        cex = 1, 
        text.col = "black", 
        horiz = F , 
        inset = c(0.01, 0.0))
-dev.off()
+#dev.off()
 ```
 
 ```{r PGLS data}
@@ -195,13 +197,14 @@ points(pglsData$log_IOF ~ pglsData$log_Mass,
 ```{r Marsupial data manipulation}
 tempData <- IOFplotData
 tempData <- tempData[order(match(tempData[,1], muchlinskiTree$tip.label)),]
-fullData <- tempData[which(tempData$Group == "Metatheria"),]
+fullData <- tempData[which(tempData$Group == "Metatheria"),][3:74,] #Taking out Prothylacinus and Borhyaena
 pglsData <- fullData[- which(fullData$Species == "Thylacinus_cynocephalus"),]
-#rm(tempData)
+rm(tempData)
 
-plot(muchlinskiTree, cex = 0.5, adj = 0.8); tiplabels(frame = "none", cex = 0.5, adj = -1)
+plot(muchlinskiTree, cex = 0.5, adj = 0.8)
+tiplabels(frame = "none", cex = 0.5, adj = -1)
 
-marsupTree <- keep.tip(muchlinskiTree, c(1:74)) # remove non-marsupial tips but leave Prothylacinus, Borhyaena in
+marsupTree <- keep.tip(muchlinskiTree, c(3:74)) # remove non-marsupial tips (i.e. delete Prothylacinus and Borhyaena)
 plot(marsupTree, cex = 0.5, adj = 0.8) # check
 treePGLS <- drop.tip(marsupTree, "Thylacinus_cynocephalus")
 plot(treePGLS, cex = 0.5, adj = 0.8) # check
@@ -321,40 +324,10 @@ fullData <- fullData[order(fullData$Residuals),]
 fullData$xNum <- 1:nrow(fullData)
 range(fullData$Residuals) # range for the plot: -0.7032064  0.5800534
 ```
-#Not in ms but fun to look at!
-```{r PGLS residual plot}
-plot(NULL,
-     xlim = c(0,73), # just a little larger so the plot is nice and roomy
-     ylim = c(-0.72, 0.62), # just a little larger so the plot is nice and roomy
-     xlab = "Species",                       
-     ylab = "log10 IOF Area ~ log10 Mass PGLS Residuals",  
-     xaxt = "n")
-abline(h = 0, col = "#808080", lwd = 0.5, lty = "dotted")
-arrows(x0 = fullData$xNum, x1 = fullData$xNum,
-       y0 = 0, y1 = fullData$Residuals, # give the axis a little breathing room at y0
-       code = 3, length = 0, lwd = 2,
-       col = fullData$barCol)
-points(fullData$Residuals,
-     pch = 23, 
-     col = "#000000", 
-     bg = fullData$PtCol, 
-     cex = 2)
-legend("topleft", 
-       legend = c("Thylacine", "Devil"), 
-       pch = c(23,23),
-       col = "#000000",
-       pt.bg = c("#c87cf8", "#2e474d"),
-       bty = "n", 
-       pt.cex = 2, 
-       cex = 0.8, 
-       text.col = "black", 
-       horiz = F , 
-       inset = c(0.01, 0.0))
-```
 
 ```{r PGLS Regression plot}
-svglite(filename = here::here("Figures", "IOF_MarsupialOnly.svg"),
-     height = 5, width = 6)
+ #svglite(filename = here::here("Figures", "IOF_MarsupialOnly.svg"),
+     # height = 5, width = 6)
 
 plot(NULL,
      xlim = range(fullData$log_Mass), # just a little more so the plot is nice and roomy
@@ -402,5 +375,5 @@ text(3, 1,
      font=3)
 box(col = "#000000")
 
- dev.off()
+# dev.off()
 ```

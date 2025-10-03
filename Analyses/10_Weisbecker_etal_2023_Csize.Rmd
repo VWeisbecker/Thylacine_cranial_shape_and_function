@@ -7,14 +7,16 @@ output: html_document
 
 ###This is code for the analysis of cranial centroid size in the thylacine compared to other marsupial mammals, using the dataset from "Multiple modes of inference reveal less phylogenetic signal in marsupial basicranial shape compared to the rest of the cranium" by Vera Weisbecker, Leonie Lange-Hodgson, Robin M D Beck, Arianna Harrington, Michael S Y Lee, Thomas Guillerme, and Matthew Phillips, published at the Mammalian Skull Special Issue of the Philosophical Transactions of the Royal Society B. DOI:10.1098/rstb.2022.0085
 
+#It runs a ton of code that was also run in the above paper, but does work to produce Supp. Figure 5.
+
 ## load required packages
 
 ```{r }
 
-library(geomorph) # [github::geomorphR/geomorph] v4.0.4 
-library(plyr)     # CRAN v1.8.7 
-library(abind)    # CRAN v1.4-5 
-library(ape)      # CRAN v5.6-2
+library(geomorph) 
+library(plyr)      
+library(abind)    
+library(ape)      
 library(here)
 library(geiger)
 library(nlme)
@@ -100,13 +102,13 @@ text( log(Csize_ordered) ~ seq(1:length(Csize_ordered)), label = names(Csize_ord
 #plot(log(GPA_AllSpecimens$Csize) ~ log (specimenList$Body_mass_g))
 #text(log(GPA_AllSpecimens$Csize) ~ log (specimenList$Body_mass_g), labels=rownames(specimenList), cex = cexes)
 
-svglite(filename = here::here("Figures", "Weisbecker_Csize.svg"),
-        height = 4)
+# svglite(filename = here::here("Figures", "Weisbecker_Csize.svg"),
+#         height = 4)
 plot(log(GPA_AllSpecimens$Csize) ~  log(specimenList$Body_mass_g), pch=18, col="maroon1", xlab = "Body mass (g)", ylab = "Centroid sizes", main = " Centroid size plotted against body mass")
 text(log(GPA_AllSpecimens$Csize) ~  log(specimenList$Body_mass_g), labels=rownames(specimenList), cex = cexes)
 abline (lm(log(GPA_AllSpecimens$Csize) ~  log(specimenList$Body_mass_g)))
 
-dev.off()
+# dev.off()
 
 remove(cexes, Csize_ordered)
 
@@ -382,8 +384,8 @@ anova(fullFit1, fullFit2)
 
 
 ```{r}
-svglite(filename = here::here("Figures", "MarsupialOnly_Csize_Reg.svg"),
-        height = 5, width = 6)
+# svglite(filename = here::here("Figures", "MarsupialOnly_Csize_Reg.svg"),
+#         height = 5, width = 6)
 plot(NULL,
      xlim = range(log10(specieslist$Body_mass_g)),
      ylim = range(log10(specieslist$Csize)), 
@@ -431,6 +433,6 @@ text(1.9, 2.3,
      "Didelphis marsupialis", 
      font=3)
 box(col = "black")
-dev.off()
+# dev.off()
 ```
 

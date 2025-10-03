@@ -11,13 +11,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Data
 ```{r Load packages}
-library(geomorph)
-library(ape)
-library(nlme)
-library(dplyr)
-library(here)
-library(geiger)
-library(svglite)
+library(geomorph) # Geometric Morphometric Analyses of 2D and 3D Landmark Data CRAN v4.0.10
+library(ape) # Analyses of Phylogenetics and Evolution CRAN v5.8-1
+library(nlme) # Linear and Nonlinear Mixed Effects Models CRAN v3.1-168
+library(dplyr) # A Grammar of Data Manipulation CRAN v1.1.4
+library(here) # A Simpler Way to Find Your Files CRAN v1.0.1
+library(geiger) # Analysis of Evolutionary Diversification CRAN v2.0.11
+library(svglite) # An 'SVG' Graphics Device CRAN v2.1.3
 ```
 
 ```{r Functions}
@@ -228,44 +228,9 @@ plotData$PtSet[plotData$Clade == "Metatheria"] <- 23
 ```
 
 
-```{r PGLS residual plot}
-svglite(filename = here::here("Figures", "Csize_Resids.svg"),
-        height = 5, width = 6)
-range(plotData$Residuals) # -0.1710360  0.1017483
-plot(NULL,
-     xlim = c(0,60), # just a little more so the plot is nice and roomy
-     ylim = c(-0.18, 0.12), # just a little larger so the plot is nice and roomy
-     xlab = "Species",                       
-     ylab = "log10 Csize ~ log10 Mass(g) Residuals",  
-     xaxt = "n",
-     main = "PGLS Residuals")
-abline(h = 0, col = "#808080", lwd = 0.5, lty = "dotted")
-arrows(x0 = plotData$xNum, x1 = plotData$xNum,
-       y0 = 0, y1 = plotData$Residuals, # give the axis a little breathing room at y0
-       code = 3, length = 0, lwd = 2,
-       col = plotData$StemCol)
-points(plotData$Residuals,
-     pch = plotData$PtSet,
-     col = "#000000",
-     bg = plotData$PtCol,
-     cex = 2)
-legend("topleft", 
-       legend = c("Placentals", "Canids", "Marsupials",  "Thylacinids"), 
-       pch = c(21, 21, 23, 23),
-       col = "#000000",
-       pt.bg = c("#f0eef0", "#ffaa5c", "#e0f0ff", "#c87cf8"),
-       bty = "n", 
-       pt.cex = 2, 
-       cex = 0.8, 
-       text.col = "black", 
-       horiz = F , 
-       inset = c(0.01, 0.0))
-dev.off()
-```
-
 ```{r PGLS Regression plot}
-svglite(filename = here::here("Figures", "Csize_Regression.svg"),
-        height = 5, width = 6)
+# svglite(filename = here::here("Figures", "Csize_Regression.svg"),
+#         height = 5, width = 6)
 plot(NULL,
      xlim = range(log10(plotData$Mass_g)), 
      ylim = range(log10(plotData$Csize)), 
@@ -312,7 +277,7 @@ legend("topleft",
        horiz = F , 
        inset = c(0.01, 0.0))
 box(col = "#000000")
-dev.off()
+# dev.off()
 ```
 
 
@@ -355,8 +320,8 @@ plotData$AlphaCol[plotData$Taxon == "Vulpes_vulpes"] <- "#ffaa5c"
 ```
 
 ```{r}
-svglite(filename = here::here("Figures", "Csize_Stripchart.svg"),
-        pointsize = 6, height = 3.5, width = 3.5)
+# svglite(filename = here::here("Figures", "Csize_Stripchart.svg"),
+#         pointsize = 6, height = 3.5, width = 3.5)
 plot(NULL,
      xlim = c(0,2), # so the plot is nice and roomy
      ylim = range(plotData$Csize),
@@ -367,5 +332,6 @@ points(plotData$Csize ~ jitter(plotData$Strip, 5),
            col = "#000000",
            bg = plotData$AlphaCol,
            cex = 3, ylab = "Centroid Size")
-dev.off()
+# dev.off()
 ```
+

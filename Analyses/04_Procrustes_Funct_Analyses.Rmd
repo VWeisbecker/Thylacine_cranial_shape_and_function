@@ -13,12 +13,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Gather up the data
 ```{r Packages}
-library(geomorph)
+library(geomorph) # Geometric Morphometric Analyses of 2D and 3D Landmark Data CRAN v4.0.10
+library(tidyverse) # Easily Install and Load the 'Tidyverse' CRAN v2.0.0
+library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics CRAN v3.5.2
+library(svglite) # An 'SVG' Graphics Device CRAN v2.1.3
+library(here) # A Simpler Way to Find Your Files CRAN v1.0.1
+library(phytools) # Phylogenetic Tools for Comparative Biology (and Other Things) CRAN v2.4-4
+library(ape) # Analyses of Phylogenetics and Evolution CRAN v5.8-1
 library(shapes)
-library(tidyverse)
-library(ggplot2)
-library(svglite)
-library(here)
 ```
 
 
@@ -33,7 +35,6 @@ pointLabels <- readRDS(here("Data", "Processed", "pointLabels.rds"))
 # remove Nimbacinus dicksoni for Family comparisons
 familyLabels <- pointLabels[!pointLabels$Taxon %in% "Nimbacinus_dicksoni",]
 ```
-
 
 # ProcDistances between thylacine and comparative species
 ```{r Subset Coords}
@@ -121,14 +122,14 @@ save(functional_procdists_table, file="./Data/Processed/functional_procdists_tab
 # is 'close' to the thylacine, but we don't want to be either too arbitrary, or too cherry-picking.
 # If the species is closer to the thylacine than 2/3 of the dataset, that sounds pretty good to me.
 
-topSkullDistance <- skullProcDist[order(skullProcDist$ProcDist, decreasing = F),]
-topSkullDistance <- topSkullDistance[1:20,]
+SkullDistance <- skullProcDist[order(skullProcDist$ProcDist, decreasing = F),]
+topSkullDistance <- SkullDistance[1:20,]
 
-topRostralDistance <- rostralProcDist[order(rostralProcDist$ProcDist, decreasing = F),]
-topRostralDistance <- topRostralDistance[1:20,]
+RostralDistance <- rostralProcDist[order(rostralProcDist$ProcDist, decreasing = F),]
+topRostralDistance <- RostralDistance[1:20,]
 
-topNeuroDistance <- neuroProcDist[order(neuroProcDist$ProcDist, decreasing = F),]
-topNeuroDistance <- topNeuroDistance[1:20,]
+NeuroDistance <- neuroProcDist[order(neuroProcDist$ProcDist, decreasing = F),]
+topNeuroDistance <- NeuroDistance[1:20,]
 
 topSpecies <- rbind.data.frame(topSkullDistance, 
                                  topRostralDistance, 
@@ -136,19 +137,11 @@ topSpecies <- rbind.data.frame(topSkullDistance,
 row.names(topSpecies) <- c(1:nrow(topSpecies)) # because it inherited the species' names
 topSpecies <- droplevels(topSpecies) # there are species that aren't represented here
 
-# Now find who appears most frequently (i.e., n > 1) in the top 1/3 of the all the datasets
-# i.e., a species has to be closer to the thylacine than 2/3 of the species sampled in 
-# MORE THAN ONE partition, e.g., across BOTH the rostrum and neurocranium, etc.
-topSpecies <- data.frame(table(topSpecies$Species)) # quick calc frequency of appearance
-topSpecies <- topSpecies[order(topSpecies$Freq, decreasing = T),]
-topSpecies <- topSpecies[topSpecies$Freq > 1,] # select those that appear more than once
+# Now, pull out the unique values. This will give us the 33% of the species set that represent
+# the closest shapes to the thylacine in Procrustes distances across all three modules.
+topSpeciesUniq <- sort(as.vector(unique(topSpecies$Species)), decreasing = F)
 
-# We found them! Turns out there's 19 species. These will be plotted below. :) 
-
-   
-topNames <- as.vector(topSpecies$Var1)
-topNames
-
+# Clean up 
 rm(topSkullDistance,
    topRostralDistance,
    topNeuroDistance,
@@ -166,16 +159,14 @@ neuroProcDist <- neuroProcDist[order(neuroProcDist$Species),]
 procDistSpecies <- cbind(skullProcDist, rostralProcDist$ProcDist, neuroProcDist$ProcDist)
 colnames(procDistSpecies) <- c("Species", "Skull_Pdist", "Rostral_Pdist", "Neuro_Pdist")
 rownames(procDistSpecies) <- procDistSpecies$Species
-procDistSpecies <- procDistSpecies[topNames,]
+procDistSpecies <- procDistSpecies[topSpeciesUniq,]
 procDistSpecies <- droplevels(procDistSpecies)
-procDistSpecies$mean_Pdist <- rowMeans(procDistSpecies[,c(2:4)])
 procDistSpecies <- procDistSpecies[order(procDistSpecies$Skull_Pdist, decreasing = T),]
 
 
 # gather it so that ggplot can understand it
 plotDataSpecies <- gather(procDistSpecies, Set, Pdist, Skull_Pdist:Neuro_Pdist, factor_key=TRUE)
-# round the Pdist just for easy visual comparison
-roundDistSpecies <- round(procDistSpecies[,c(2:5)], 3)
+
 
 # clean up environment
 rm(skullSpeciesCoords,
@@ -191,8 +182,8 @@ rm(skullSpeciesCoords,
 
 
 ```{r Species ProcDistance plot}
-svglite(filename = here::here("Figures", "Procdist_FuncSpecies_v2.svg"),
-        pointsize = 6, height = 4, width = 3.6)
+# svglite(filename = here::here("Figures", "Procdist_FuncSpecies_Rev4.svg"),
+#         pointsize = 6, height = 6, width = 3.6)
 ggplot(data = plotDataSpecies, aes(y = Pdist, 
                                    x = fct_inorder(Species), 
                                    colour = Set)) +
@@ -217,7 +208,7 @@ ggplot(data = plotDataSpecies, aes(y = Pdist,
                       labels = c("Skull", "Rostrum", "Neurocranium"),
                       values = c("#233045", "#72c496", "#ba5800")) +
     coord_flip() +
-    ylab("Procrustes distance from thylacine v2") +
+    ylab("Procrustes distance from thylacine Rev4") +
     xlab(NULL) +
     theme(panel.background = element_rect(fill = "#ffffff", colour = "#545454"),
         panel.grid.major.y = element_blank(),
@@ -226,22 +217,9 @@ ggplot(data = plotDataSpecies, aes(y = Pdist,
         axis.text.x = element_text(size = 8),
         axis.text.y = element_text(size = 8),
         legend.position = "bottom") 
-dev.off()
+# dev.off()
 ```
 
 
-# Quick descriptives
-```{r Summary & Q1}
-summSpecies <- as.table(summary(roundDistSpecies))
-# the following extracts the value in the second row of the table, 1st, 2nd, 3rd column respectively
-skullQ1 <- summSpecies[[2,1]] # skull Q1
-rostralQ1 <- summSpecies[[2,2]] # Rostral Q1
-neuroQ1 <- summSpecies[[2,3]] # Neuro Q1
-```
 
-```{r Q1 Species}
-# pull the rows for the cases that are less than or equal to the respective Q1 value
-Q1SkullSpecs <- roundDistSpecies[roundDistSpecies$Skull_Pdist <= 0.1220, ]
-Q1RostralSpecs <- roundDistSpecies[roundDistSpecies$Rostral_Pdist <= 0.1510, ]
-Q1NeuroSpecs <- roundDistSpecies[roundDistSpecies$Neuro_Pdist <= 0.1710, ]
-```
+

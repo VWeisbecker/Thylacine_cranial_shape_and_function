@@ -56,6 +56,7 @@ linearDists <- linearDists[,-1]
 
 ```
 
+#Creating the meshes for screenshotting - this is commented out but just to replicate how we made the ventral views in fig. 5. The usrmats are already created and in Figures/Usrmats
 ```{r}
 # 
 
@@ -375,7 +376,7 @@ plotData$PtSet[plotData$Clade == "Metatheria"] <- 23
 #stacked plots!
 
 ```{r Regression plot}
- svglite(filename = here::here("Figures", "rosette_Regression_stack.svg"), height = 9, width = 6)
+ #svglite(filename = here::here("Figures", "rosette_Regression_stack.svg"), height = 9, width = 6)
 
 par(mfrow=c(2,1), mar=c(2,4,0,2))
 
@@ -496,11 +497,11 @@ box(col = "#000000")
 
 
 
-dev.off()
+#dev.off()
 ```
 
 
-#Trying something new here - ternary plots! Not in ms but fun to do
+#Trying something new here - ternary plots! Not in the paper but VW didn't have the heart to delete this beautiful presentation.
 
 ```{r}
 

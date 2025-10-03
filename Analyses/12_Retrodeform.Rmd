@@ -1,0 +1,55 @@
+---
+title: "Retrodeformation"
+author: "DSRovinsky"
+date: "2022-10-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Packages
+```{r}
+library(Morpho)
+library(geomorph)
+```
+
+## Load
+Load in the .ply files and landmarks. 
+Remember, the .ply needs to be in ASCII format, or you will have a bad time.
+```{r}
+# Example of using Morpho to reduce plastic deformation in a fossil
+# Note the actual file name will be different, as the processed mesh (not the deformed original) will be available in supplemental info.
+Borhyaena <- read.ply(here::here("Data", "Borhyaena_4Morpho.ply"), ShowSpecimen = F)
+
+BorLandmarks <- read.pts(here::here("Data", "Borhyaena_4Morpho.pts"))
+
+```
+# Retrodeform
+## Borhyaena 
+
+Gather the landmarks. They were placed in R:L pairs, so we need to pull out the fixed points and the curves, then segregate them by side.
+```{r}
+fix <- 1:44
+nfix <- 44
+fixRight <- seq(2, by=2,len=22)
+fixLeft <- seq(1, by=2,len=22)
+pairedLM <- cbind(fixLeft, fixRight)
+landmarksSym <- symmetrize(landmarks,pairedLM)
+```
+
+```{r}
+RetroBorhyaena <- retroDeformMesh(Borhyaena,
+                                  landmarksSym,
+                                  pairedLM = pairedLM)
+deformGrid3d(RetroBorhyaena$landmarks$orig,
+             RetroBorhyaena$landmarks$deformed,
+             col2 = 5)
+shade3d(RetroBorhyaena$mesh,col = "antiquewhite")
+
+writePLY("RetroBorhyaenaMesh.ply")
+```
+
+
+

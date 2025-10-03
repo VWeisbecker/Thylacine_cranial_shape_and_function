@@ -18,10 +18,15 @@ library(here)     # CRAN v1.0.1
 
 ```{r Load some data}
 # Load data produced in "GMM_GPA.Rmd"
-load(here("Data", "Processed", "skullLmkSymm.rda"))
-lmkSets <- read.csv(here("Data", "Sets_Newtonetal2021.csv"))
+#load(here("Data", "Processed", "skullLmkSymm.rda"))
+#or
+load("../Data/Processed/skullLmkSymm.rda")
+#lmkSets <- read.csv(here("Data", "Sets_Newtonetal2021.csv"))
+#or
+lmkSets<-read.csv("../Data/Sets_Newtonetal2021.csv")
+
 # Load the labels produced in "GMM_GPA.Rmd"
-pointLabels <- readRDS(here("Data", "Processed", "pointLabels.rds"))
+pointLabels <- readRDS("../Data/Processed/pointLabels.rds")
 ```
 
 ```{r Calculate mean shapes}
