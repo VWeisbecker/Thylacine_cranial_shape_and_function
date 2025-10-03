@@ -13,14 +13,14 @@ output: html_document
 
 ```{r }
 
-library(geomorph) 
-library(plyr)      
-library(abind)    
-library(ape)      
-library(here)
-library(geiger)
-library(nlme)
-library(svglite)
+library(geomorph) # CRAN v4.0.10 
+library(plyr)     # CRAN v1.8.9      
+library(abind)    # CRAN v1.4-8    
+library(ape)      # CRAN v5.8-1      
+library(here)     # CRAN v1.0.1
+library(geiger)   # CRAN v2.0.11
+library(nlme)     # CRAN v3.1-168
+library(svglite)  # CRAN v2.2.1
 
 # This sets the wd to local
 library(rstudioapi) # Safely Access the RStudio API

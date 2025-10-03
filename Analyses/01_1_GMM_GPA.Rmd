@@ -13,9 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r Load packages}
-library(geomorph) # Geometric Morphometric Analyses of 2D and 3D Landmark Data CRAN v4.0.10 
-library(dplyr) # A Grammar of Data Manipulation CRAN v1.1.4    
-library(here) # A Simpler Way to Find Your Files CRAN v1.0.1     
+library(geomorph) # CRAN v4.0.10 
+library(dplyr)    # CRAN v1.1.4    
+library(here)     # CRAN v1.0.1    
 ```
 
 ```{r Read data}
@@ -322,5 +322,11 @@ spheres3d(mesLmkSymm$symm.shape[,,"Andrewsarchus_mongoliensis_20135"],
 ```{r}
  save(mesLmkSymm, mesCsize, file = here("Data", "Processed", "mesLmkSymm.rda"))
 ```
+
+
+
+
+
+
 
 

@@ -13,14 +13,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Gather up the data
 ```{r Packages}
-library(geomorph) # Geometric Morphometric Analyses of 2D and 3D Landmark Data CRAN v4.0.10
-library(tidyverse) # Easily Install and Load the 'Tidyverse' CRAN v2.0.0
-library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics CRAN v3.5.2
-library(svglite) # An 'SVG' Graphics Device CRAN v2.1.3
-library(here) # A Simpler Way to Find Your Files CRAN v1.0.1
-library(phytools) # Phylogenetic Tools for Comparative Biology (and Other Things) CRAN v2.4-4
-library(ape) # Analyses of Phylogenetics and Evolution CRAN v5.8-1
-library(shapes)
+library(geomorph)  # CRAN v4.0.10 
+library(tidyverse) # CRAN v2.0.0 
+library(ggplot2)   # CRAN v3.5.2 
+library(svglite)   # CRAN v2.2.1 
+library(here)      # CRAN v1.0.1 
+library(phytools)  # CRAN v2.4-4 
+library(ape)       # CRAN v5.8-1 
+library(shapes)    # CRAN v1.2.7
 ```
 
 

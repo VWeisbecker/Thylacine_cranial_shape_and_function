@@ -11,8 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Packages
 ```{r}
-library(Morpho)
-library(geomorph)
+library(Morpho)   # CRAN v2.12
+library(geomorph) # CRAN v4.0.10
 ```
 
 ## Load

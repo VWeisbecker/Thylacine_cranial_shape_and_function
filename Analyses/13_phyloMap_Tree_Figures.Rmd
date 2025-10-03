@@ -10,9 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-library(phytools)
-library(svglite)
-library(here)
+library(phytools) # CRAN v2.4-4
+library(svglite)  # CRAN v2.2.1
+library(here)     # CRAN v1.0.1
 ```
 ```{r Load data}
 Pdistance <- read.csv(here("Figures", "Combined_Procdist_table.csv"))

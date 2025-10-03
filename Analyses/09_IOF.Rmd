@@ -11,12 +11,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Manipulate data
 ```{r Load packages}
-library(ape)
-library(geiger)
-library(tidyverse)
-library(nlme)
-library(svglite)
-library(here)
+library(ape)       # CRAN v5.8-1
+library(geiger)    # CRAN v2.0.11
+library(tidyverse) # CRAN v2.0.0
+library(nlme)      # CRAN v3.1-168
+library(svglite)   # CRAN v2.2.1
+library(here)      # CRAN v1.0.1
 ```
 
 ```{r Functions}

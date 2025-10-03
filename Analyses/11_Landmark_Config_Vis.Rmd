@@ -10,10 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-library(geomorph) # CRAN v4.0.7
-library(shapes)   # CRAN v1.2.7
-library(dplyr)    # CRAN v1.1.4
-library(here)     # CRAN v1.0.1
+library(geomorph) # CRAN v4.0.10
+library(shapes)   # CRAN v1.2.7   
+library(dplyr)    # CRAN v1.1.4    
+library(here)     # CRAN v1.0.1     
 ```
 
 ```{r Load some data}

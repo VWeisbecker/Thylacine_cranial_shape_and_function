@@ -12,12 +12,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r Packages}
-library(geomorph)
-library(shapes)
-library(tidyverse)
-library(ggplot2)
-library(svglite)
-library(here)
+library(geomorph)  # CRAN v4.0.10 
+library(tidyverse) # CRAN v2.0.0 
+library(ggplot2)   # CRAN v3.5.2 
+library(svglite)   # CRAN v2.2.1 
+library(here)      # CRAN v1.0.1 
+library(phytools)  # CRAN v2.4-4 
+library(ape)       # CRAN v5.8-1 
+library(shapes)    # CRAN v1.2.7
 ```
 
 ```{r Load data}

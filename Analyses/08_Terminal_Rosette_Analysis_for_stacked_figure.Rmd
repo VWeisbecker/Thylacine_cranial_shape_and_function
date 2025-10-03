@@ -12,15 +12,15 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r Load packages}
-library(geomorph)
-library(ape)
-library(geiger)
-library(nlme)
-library(dplyr)
-library(svglite)
-library(here)
-library(Ternary)
-library(Rvcg)
+library(geomorph) # CRAN v4.0.10
+library(ape)      # CRAN v5.8-1
+library(geiger)   # CRAN v2.0.11
+library(nlme)     # CRAN v3.1-168
+library(dplyr)    # CRAN v1.1.4
+library(svglite)  # CRAN v2.2.1
+library(here)     # CRAN v1.0.1
+library(Ternary)  # CRAN v2.3.4
+library(Rvcg)     # CRAN v0.25
 
 # Load phylogeny: this is the composite tree from Rovinsky et al., 2021, with the fossil taxa added
 phyTree <- read.tree(here::here("Data", "phyloGMM.tre"))

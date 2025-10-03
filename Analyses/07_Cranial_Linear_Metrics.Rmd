@@ -11,9 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Manipulate data
 ```{r Load packages}
-library(smatr)
-library(svglite)
-library(here)
+library(smatr)   # CRAN v3.4-8
+library(svglite) # CRAN v2.2.1
+library(here)    # CRAN v1.0.1
 ```
 
 ```{r Functions}
