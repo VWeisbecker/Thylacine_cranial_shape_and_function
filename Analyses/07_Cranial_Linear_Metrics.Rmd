@@ -581,14 +581,3 @@ legend("topleft",
 # dev.off()
 ```
 
-
-
-# Discussion
-The thylacine unsurprisingly tracks differently than the placental gray wolf or dingo. The thylacine overall has a longer rostrum (face) than either a wolf or dingo of similar size, and the rostral width at the canines and facial width at the carnassials --- both important areas regarding prey acquisition and processing --- are smaller for a given head size than seen in either placental comparative. The width at the carnassials is dramatically different, showing much a less robust midface than would be expected for the head size, especially as the animals' size increases. This isn't a "big-biting" face!
-
-Interestingly, the zygomatic width increases by a much higher factor than either the wolf or dingo. If we had a thylacine and a wolf of the same head 'size', the thylacine zygomatics would actually be wider than the wolf's! This is wicked-cool, and really kinda confusing; wide zygomatic arches usually house large muscles of mastication (mostly the temporalis & masseter), which would in turn imply a strong bite supported by a robust, stress-handling face. But we instead see a delicate face. Why is this? Dunno. Maybe it's part of intraspecific signalling? 
-It's been confusing since Steve Wroe looked at the results from two of his papers and said "those are two contradictory results, mate" (paraphrasing you Steve, please don't bite me)
-
-BONUS FEATURE: The occipital condyles are also much smaller than would be expected for the head size, in comparison to either the wolf or dingo. This suggests that the head size (as proxied by the Gmean) is large for the body size (mass - as proxied by the occipital condyle width a la Engelman 2022 "Occipital condyle width (OCW) is a highly accurate predictor of body mass in therian mammals" 10.1186/s12915-021-01224-9). 
-It's a relatively big but surprisingly delicate head for the body. Why? That's the million-dollar question.
-
