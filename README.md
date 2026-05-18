@@ -1,3 +1,4 @@
+<a href="https://doi.org/10.5281/zenodo.20268385"><img src="https://zenodo.org/badge/798038116.svg" alt="DOI"></a>
 ## Code to replicate analyses and figures of the manuscript "Skull morphology of the extinct Tasmanian tiger suggests unique biting style"
 Manuscript authors: Vera Weisbecker, Andrew J Pask, Axel H Newton, and Douglass S Rovinsky
 
