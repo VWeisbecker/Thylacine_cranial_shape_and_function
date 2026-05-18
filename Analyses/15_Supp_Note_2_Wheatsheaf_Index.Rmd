@@ -1,0 +1,347 @@
+---
+title: "06_Wheatsheaf_Index"
+author: "Vera Weisbecker"
+output: html_document
+date: "2025-07-03"
+editor_options:
+  chunk_output_type: console
+---
+
+Wheatsheaf Index - this code based on the code implemented by Grunstra, N.D.S., Hollinetz, F., Bravo Morante, G. et al. Convergent evolution in Afrotheria and non-afrotherians demonstrates high evolvability of the mammalian inner ear. Nat Commun 15, 7869 (2024). https://doi.org/10.1038/s41467-024-52180-1
+
+We were asked by a reviewer if the thylacine has a Wheatsheaf index suggesting that it is convergent to canids, adjacent to our hypotheses which purely focused on similarities without any focus on convergence. 
+
+We chose not to include this code in the main publication because there are several issues with its use in this context, even though the metrics mirror the simpler and less assumption-heavy the Procrustes distances anyway. But the below is still a useful dissection of what goes on under the bonnet of the Wheatsheaf index, with comments by VW.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Gather up the data
+```{r Packages}
+library(geomorph)
+library(here)
+library(phytools)
+library(ape)
+library(rlist)
+
+library(rstudioapi)
+setwd(dirname(getActiveDocumentContext()$path))
+```
+
+
+```{r Load data}
+
+#Load mean species shape coordinates generated in the PCA code files; this requires running 02_PCA_Functional an 03_PCA_Developmental first
+load(file="../Data/Processed/Partition_species_coords.rda")
+
+#Load phylogeny
+rawTree <- read.tree(here::here("Data", "phyloGMM.tre"))
+
+
+#reorder coords to fit the tree. 
+Orderfunction <- function(coords){
+  coords[,,order(match(dimnames(coords)[[3]],rawTree$tip.label))]
+  
+}
+
+Partition_species_coords <- lapply(Partition_species_coords, Orderfunction)
+
+#Check check, tree talks to labels
+
+rawTree$tip.label==dimnames(Partition_species_coords$FNP)[[3]]
+
+
+```
+
+#Get Phylogenetic Distance matrix
+```{r}
+
+
+tree_rescaled <- rawTree
+#Re-scale to a total length of 1, check
+tree_rescaled$edge.length <- tree_rescaled$edge.length/max(nodeHeights(rawTree))
+
+plot(rawTree)
+plot(tree_rescaled)
+
+#phylogenetic distance matrix in ape computes the expected variances and covariances of a continuous trait assuming it evolves under a given model. In simplistic terms, these are the values you weigh traits by during phylogenetically informed analysis. The values are highest between close relatives and lowest between remote relatives, makes sense (traits should covary less due to relatedness in non-relatives)
+
+#Rescaling the tree is required as per the original publication, makes sense; it causes all of the distances to be positive. Without rescaling, they were negative
+phyl_dist_mat <- vcv.phylo(tree_rescaled)
+
+#compare to vcv matrix of just the raw tree because those zeroes between all marsupial/placental pairs are odd
+phyl_dist_raw_mat <- vcv.phylo(rawTree)
+
+#does the same thing. I reckon the very long base length stuffs up the vcv. So here making the very long base branches much shorter. 
+test_tree <- rawTree
+text_tree <- compute.brlen(test_tree)
+vcv.phylo(test_tree)
+#what happens if we only consider one clade?
+
+tree_marsupials <- drop.tip(test_tree, c(test_tree$tip.label[1:48]))
+tree_canids <- keep.tip(test_tree, c(test_tree$tip.label[1:48]))
+tree_no_andrews <- keep.tip(test_tree, c(test_tree$tip.label[2:48]))
+
+#Now, only the outgroup clades are zero rel. to everyone else. BUT if there is one deep split at the base between canids and felids, we've got the same thing with tons of zeroes
+vcv.phylo(tree_marsupials)
+vcv.phylo(tree_canids)
+vcv.phylo(tree_no_andrews)
+plot(tree_no_andrews)
+
+#write.csv(phyl_dist_mat, file="../Data/Processed/phyl_dist_matrix.csv")
+#write.csv(phyl_dist_raw_mat, file="../Data/Processed/phyl_dist_raw_mat.csv")
+
+
+```
+
+Turning the coords into a distance matrix requires some juggling, the 3d array needs turning into 2d array. The first three lines can probably be just three nested lapplys, but that gets too complex
+
+```{r}
+
+Partition_species_array <- lapply(Partition_species_coords, two.d.array)
+
+Partition_species_dists <- lapply(Partition_species_array, dist)
+
+Partition_species_matrices <- lapply(Partition_species_dists, as.matrix)
+
+#Instead, here now using the PCA because, unlike the 3D coordinates, that can be used by the windex package
+
+#the shape dist matrix also talks to the phylo dist matrix. This does not work using "a==b", it only works with "identical (a,b)". Hm.
+identical(dimnames(Partition_species_matrices$Skull),dimnames(phyl_dist_mat))
+
+#Using "dist" instead of the procdist approach for the uncorrected plots has very minor deviations of the thylacine distances from other species, so we accept this. (admittedly in the next file but this code here is also fine)
+
+#grabbing the skullProcDist object from the analyses of raw Procrustes distances - this requires running the Procrustes analyses first and is just a test
+Thyla_column_skull <- Partition_species_matrices$Skull[1:59,60]
+Thyla_column_skull <- Thyla_column_skull[match(as.vector(skullProcDist$Species),names(Thyla_column_skull))]
+plot(Thyla_column_skull, skullProcDist$ProcDist)
+
+
+
+```
+
+The below is 100% lifted from Grunstra et al. 2024. Thank you very much :-)! With comments from VW so she can get her head around the process
+
+Correct phenotypic dist matrix for phyl. relatedness (formula (1) from Arbuckle et al. 2015 Methods Ecol Evol)
+```{r}
+
+#apply formula to matrices. 
+Arbuckle_15_form <- function (shapedistmatrix){
+  
+  shapedistmatrix / (1 - log(phyl_dist_mat + 0.01))
+  
+}
+
+#This gives positive and negative values, which is interesting. 
+corrected_partition_dists <- lapply(Partition_species_matrices, Arbuckle_15_form) #still a symmetrical matrix (upper + lower triangles)
+
+#checking if this checks out using one manual example- it does
+
+identical(Partition_species_matrices$Skull/(1 - log(phyl_dist_mat + 0.01)),corrected_partition_dists$Skull )
+
+corrected_partition_dists_low <- corrected_partition_dists
+
+
+#I can't get this to work via lapply. Overwriting the upper triangle with zeroes to keep the upper triangle
+
+
+for (i in 1:length(corrected_partition_dists_low)){
+
+corrected_partition_dists_low[[i]][upper.tri(corrected_partition_dists_low[[i]])] <- 0
+
+}
+
+#again, a manual check using any partition
+test <- corrected_partition_dists_low$Mes
+test[upper.tri(test)]<-0
+
+identical(corrected_partition_dists_low$Mes, test)
+
+#Distance matrices and matrices differ slightly in that the matrices contain zeroes of the first self-comparison and the distance matrices don't. Otherwise the values are identical. So the mean dists are calculated with distances but it is easier to use matrix format to pull out individual values.
+Phyl_corrected_dists <- lapply(corrected_partition_dists_low, as.dist)
+Phyl_corrected_matrices <- corrected_partition_dists_low
+
+#Checking if we still get kind of the right signal. It makes sense that marsupials all have similar values when compared to any one species
+
+Phyl_corrected_matrices$Skull [,2]
+Phyl_corrected_matrices$Rostrum [,1]
+Phyl_corrected_matrices$Neurocranium [,1]
+
+
+
+```
+
+
+Pull out the distances between all the other species. Grunstra did this by comparing the distances between afrotherian species and non-afrotherians and then asking if presumed analogues had higher wheatsheaf indices. 
+
+In our case, it would need to be the marsupials vs. canids and the thylacine and wolf as the focal species. In both cases the focal comparison should be removed, something Grunstra didn't do and probably not all that result-changing but more rigorous (Weisbecker et al. 2019 wombat paper explains)
+
+For issues with this approach, see Supplementary Note 2. 
+
+```{r}
+
+
+#We want to ask if:
+#the thylacine distance is closer to the wolf than the mean distance of other marsupials to the wolf
+#the thylacine distance is closer to canids than the mean distance of other marsupials to the wolf
+#the wolf distance is closer to the thylacine than the mean distance of other canids to the thylacine
+
+#We need as FOCAL SPECIES:
+#Thylacine vs wolf = wolf vs thylacine distance
+#Thylacine vs canid mean distance
+
+#We need as COMPARATIVE SAMPLE:
+#Marsupials without thylacine vs wolf (compare thyla/wolf vs mars/wolf)
+#Marsupials without thylacine vs. canids (compare thyla/canids vs mars/canids) 
+#Canids without wolf vs thylacine (compare wolf/thyla vs canids/thyla)
+#We don't expect the wolf to be convergent with any marsupials, so we are not running a test to this effect
+
+#Use the mean labels to pull out rows, columns of interest - first they need reordering to talk to the matrices.
+meanLabels <- meanLabels[match(rownames(Phyl_corrected_matrices$Skull),rownames(meanLabels) ),]
+rownames(meanLabels)==rownames(Phyl_corrected_matrices$Skull)
+
+
+#Now we need the mean pairwise Proc distances for the focal species - the Thylacine and the wolf. Thylacine is row/column 60, wolf row/column 30
+thyla_row <- which(rownames(Phyl_corrected_matrices$Skull)=="Thylacinus_cynocephalus")
+wolf_col <- which(colnames(Phyl_corrected_matrices$Skull)=="Canis_lupus") 
+
+# distance between thylacine and wolf cell. So somehow the "[[" tells it to go look for row 20, column 30, which is so cool to learn.
+Thyla_wolf_distances <- lapply(Phyl_corrected_matrices, "[[", thyla_row,wolf_col)
+Thyla_wolf_distances
+
+#numbers check out. 
+Phyl_corrected_matrices$Pa[thyla_row,wolf_col]
+
+#COMPARISONS
+
+Mars_rows <- which(meanLabels$Clade=="Metatheria") 
+
+#This is a bit complicated, but to pull out the thylacine, we have to find not the name of the species but the number of the species. For the thylacine, which is last in the list, this doesn't matter but for the wolf, which is 30, it matters. 
+
+#The 12th entry has a value of 60, i.e. is the thylacine
+Mars_rows_noThyla <-Mars_rows[- which(Mars_rows == which(rownames(meanLabels) =="Thylacinus_cynocephalus")) ]
+
+Canid_columns <- which (meanLabels$Family=="Canidae")
+#The 2nd entry has a value of 30, i.e. is the wolf
+Canid_columns_noWolf <- Canid_columns [- which(Canid_columns == which(rownames(meanLabels) =="Canis_lupus")) ]
+
+#Using the lovely "[" argument, we now pull out a matrix that has the marsupials w/o Thylacine as rows and the canids as colums, with relevant distances in the cells. In one-species comparisons, you don't have a matrix, just a vector. If you did have a matrix (canids vs mars!), you have to transpose columns and rows for canid-mas comparisons because the upper triangle is 0
+
+#These are values when thylacines and wolves are taken out of all comparisons.
+Mars_vs_canid_matrices <-lapply(Phyl_corrected_matrices, "[", Mars_rows_noThyla,Canid_columns_noWolf)
+Mars_vs_wolf_matrices <-lapply(Phyl_corrected_matrices, "[", Mars_rows_noThyla,wolf_col)
+Canid_vs_thyla_matrices <- lapply(Phyl_corrected_matrices, "[", thyla_row,Canid_columns_noWolf)
+Canid_vs_mars_matrices <- lapply(Phyl_corrected_matrices, "[", Mars_rows_noThyla,Canid_columns_noWolf)
+Canid_vs_mars_matrices <- lapply(Canid_vs_mars_matrices, t)
+
+#Quick spot check for - values of comparative matrices match with the overall matrices
+Phyl_corrected_matrices$Neurocranium[which(rownames(Phyl_corrected_matrices$Neurocranium)=="Thylacinus_cynocephalus"),which(rownames(Phyl_corrected_matrices$Neurocranium)=="Canis_latrans")]
+
+# FOCAL SPECIES (thyla wolf distances are already computed above, but adding here for clarity. This value will be contrasted wolf vs thyla and thyla vs wolf)
+Thyla_wolf_distances
+Thyla_vs_canid_matrices <-lapply(Phyl_corrected_matrices, "[", thyla_row,Canid_columns)
+Wolf_vs_mars_matrices <-lapply(Phyl_corrected_matrices, "[",Mars_rows, wolf_col)
+
+
+#WHEATSHEAF VALUES
+
+#Mean distances for comparative species
+
+Mean_distance_mars_canids <- lapply(Mars_vs_canid_matrices, mean)
+Mean_distance_mars_wolf <- lapply(Mars_vs_wolf_matrices, mean)
+Mean_distance_canids_thyla <- lapply(Canid_vs_thyla_matrices, mean)
+Mean_distance_canids_mars <- lapply(Canid_vs_mars_matrices, mean)
+
+#Focal species are wolf/thyla = thyla wolf, plus, canids vs thyla  and wolf vs mars
+Thyla_vs_canid_distance <- lapply(Thyla_vs_canid_matrices, mean)
+Wolf_vs_mars_distance <- lapply(Wolf_vs_mars_matrices, mean)
+#The Wheatsheaf index is the mean of the comparative sample/value (or mean) of focal species.
+
+#Thylacine-canids vs marsupials-canids. Use mapply to divide the values. I didn't know that either. 
+TC_WI <- mapply(Mean_distance_mars_canids,Thyla_vs_canid_distance, FUN="/")
+
+#This is meant to give  a percentage of how much more dissimilar the total sample is compared to the focal pair. The below shows that the nested mapply application works. Following Grunstra's interpretation, the total sample for the skull is 14% more dissimilar in shape than the rest of the mars-plac pairs, and the total sample for the neurocranium is 29% more similar than the mars-plac pairs. That matches with what we found.
+TC_Pc <- mapply( mapply(Mean_distance_mars_canids, Thyla_vs_canid_distance,FUN="-" ) ,Mean_distance_mars_canids, FUN="/" )
+
+#Thylacine-wolf vs marsupials-wolf
+TW_WI<- mapply(Mean_distance_mars_wolf,Thyla_wolf_distances, FUN="/")
+TW_Pc <- mapply( mapply(Mean_distance_mars_wolf, Thyla_wolf_distances,FUN="-" ) ,Mean_distance_mars_wolf, FUN="/" )
+
+#Wolf-marsupials vs canids-marsupials
+WM_WI<- mapply(Mean_distance_canids_mars,Wolf_vs_mars_distance, FUN="/")
+WM_Pc <- mapply( mapply(Mean_distance_canids_mars, Wolf_vs_mars_distance,FUN="-" ) ,Mean_distance_canids_mars, FUN="/" )
+
+#Wolf-thylacine vs. canids-thylacine
+WT_WI <- mapply(Mean_distance_canids_thyla,Thyla_wolf_distances, FUN="/")
+WT_Pc <- mapply( mapply(Mean_distance_canids_thyla, Thyla_wolf_distances,FUN="-" ) ,Mean_distance_canids_thyla, FUN="/" )
+
+Wheatsheaf_output <- cbind(TC_WI, TC_Pc, TW_WI, TW_Pc, WM_WI, WM_Pc, WT_WI, WT_Pc)
+Wheatsheaf_output <- round(Wheatsheaf_output,3)
+
+colnames(Wheatsheaf_output) <- c("Thylacine-Canidae vs Metatheria-Canidae WI", "Thylacine-Canidae vs Metatheria-Canidae %", "Thylacine-Wolf vs. Metatheria-Wolf WI", "Thylacine-Wolf vs. Metatheria-Wolf %","Wolf-Metatheria vs. Canidae-Metatheria WI", "Wolf-Metatheria vs. Canidae-Metatheria WI %", "Wolf-Thylacine vs. Canidae-Thylacine WI", "Wolf-Thylacine vs. Canidae-Thylacine %")
+
+write.csv(Wheatsheaf_output, file="../Figures/Wheatsheaf_output.csv")
+
+```
+
+Pulling out the phylogenetically corrected distances from just the thylacine with all species
+```{r}
+#Use the mean labels to pull out rows, columns of interest - first they need reordering to talk to the matrices.
+meanLabels <- meanLabels[match(rownames(Phyl_corrected_matrices$Skull),rownames(meanLabels) ),]
+rownames(meanLabels)==rownames(Phyl_corrected_matrices$Skull)
+
+
+#Now we need the mean pairwise Proc distances for the Thylacine, is row/column 60
+thyla_row <- which(rownames(Phyl_corrected_matrices$Skull)=="Thylacinus_cynocephalus")
+
+#pull out all other species
+
+columns_noThyla <- which(!rownames(Phyl_corrected_matrices$Skull)=="Thylacinus_cynocephalus")
+
+
+All_vs_Thyla_matrices <-lapply(Phyl_corrected_matrices, "[", thyla_row, columns_noThyla)
+
+```
+
+#Now turning this into the same table as Douglass'  
+```{r}
+
+#Make it alphabetical. I feel like I do this in a different way each time, but it works
+matches <- match(sort(names(All_vs_Thyla_matrices$Skull)),names(All_vs_Thyla_matrices$Skull))
+
+match.fun <- function (matrix) {matrix[matches]}
+
+All_vs_Thyla_matrices_sorted <- (lapply(All_vs_Thyla_matrices,match.fun))
+
+#making sure I didn't accidentally swap the wrong species; has to be TRUE
+#All_vs_Thyla_matrices$Rostrum[which(names(All_vs_Thyla_matrices$Rostrum)=="Viverricula_indica")]==All_vs_Thyla_matrices_sorted$Rostrum[which(names(All_vs_Thyla_matrices_sorted$Rostrum)=="Viverricula_indica")]
+
+# A very useful little command from the Rlist package - list.rbind!
+Phylo_procD_matrix <- t(list.rbind(All_vs_Thyla_matrices_sorted))
+
+write.csv( Phylo_procD_matrix, file="../Figures/Phylo_procD_matrix.csv")
+
+```
+
+Here's a check on how well the phylo and non-phylo matrices compare
+```{r}
+
+
+Phylo_nonProcD_matrix <- read.csv (file="../Figures/Combined_Procdist_table.csv")
+
+par(mfrow=c(1,2))
+
+#Rostrum
+plot(Phylo_nonProcD_matrix[,4]~ Phylo_procD_matrix[,2],cex=0.8,  pch=19, col="hotpink", xlab="Phylogenetically weighed distances", ylab="Raw Procrustes distances", main="a) Rostrum", cex.lab=1.2, xlim=c(0.03,0.3))
+
+text(Phylo_nonProcD_matrix[,4]~ Phylo_procD_matrix[,2], labels=rownames(Phylo_procD_matrix),pos=4,cex=0.7)
+
+#Neuro
+plot(Phylo_nonProcD_matrix[,5]~ Phylo_procD_matrix[,3],cex=0.8,  pch=19, col="hotpink", xlab="Phylogenetically weighed distances", ylab="Raw Procrustes distances", main="b) Neurocranium",cex.lab=1.2,xlim=c(0.02,0.15))
+
+text(Phylo_nonProcD_matrix[,5]~ Phylo_procD_matrix[,3], labels=rownames(Phylo_procD_matrix),pos=4, cex=0.7)
+
+```
+

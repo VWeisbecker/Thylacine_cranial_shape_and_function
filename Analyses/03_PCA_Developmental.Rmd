@@ -11,9 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r Packages}
 library(geomorph)  # CRAN v4.0.10 
+library(ape)       # CRAN v5.8-1 
 library(tidyverse) # CRAN v2.0.0 
-library(svglite)   # CRAN v2.2.1 
-library(here)      # CRAN v1.0.1 
+library(svglite)   # CRAN v2.2.2
+library(here)      # CRAN v1.0.2 
 ```
 
 ```{r Load data}
@@ -31,10 +32,10 @@ pointLabels <- readRDS(here("Data", "Processed", "pointLabels.rds"))
 pointLabels$PtCol <- "#fff0e0"
 pointLabels$PtCol[pointLabels$Clade == "Metatheria"] <- "#e0f0ff"
 pointLabels$PtCol[pointLabels$Family == "Thylacinidae"] <- "#c87ef8" #purple
-pointLabels$PtCol[pointLabels$Taxon == "Borhyaena_tuberata"] <- "#ca576c" #red - just to see position
+pointLabels$PtCol[pointLabels$Taxon == "Borhyaena_tuberata"] <- "#e0f0ff" #red - just to see position
 pointLabels$PtCol[pointLabels$Family == "Canidae"] <- "#ffaa5c" #blue
-pointLabels$PtCol[pointLabels$Taxon == "Canis_lupus"] <- "#233045" #navy - just to see position
-pointLabels$PtCol[pointLabels$Taxon == "Andrewsarchus_mongoliensis"] <- "#72c496" #green - just to see position
+pointLabels$PtCol[pointLabels$Taxon == "Canis_lupus"] <- "#ffaa5c" #navy - just to see position
+pointLabels$PtCol[pointLabels$Taxon == "Andrewsarchus_mongoliensis"] <- "#fff0e0" #green - just to see position
 pointLabels$Point <- 21
 pointLabels$Point[pointLabels$Clade == "Metatheria"] <- 23
 pointLabels$ID <- str_c(substr(pointLabels$Taxon,1,3), str_to_title(substr(sub(".*_", "", pointLabels$Taxon),1,3)) )
@@ -72,10 +73,10 @@ fnpPlotData <- bind_cols(pcaFNPscores, meanLabels)
 
 
 ```{r FNP PCA Plot}
-# svglite(filename = here::here("Figures", "PCA_DevoFNP.svg"),
-#         pointsize = 6,
-#         width = 3.5,
-#         height = 3.5)
+svglite(filename = here::here("Figures", "PCA_DevoFNP.svg"),
+        pointsize = 6,
+        width = 3.5,
+        height = 3.5)
 plot(NULL,
      xlim = range(fnpPlotData$Comp1),
      ylim = range(fnpPlotData$Comp2),
@@ -113,7 +114,7 @@ legend("bottomleft",
        text.col = "black", 
        horiz = F ,
        inset = c(0.0, 0.0))
-# dev.off()
+dev.off()
 ```
 
 ```{r PA Subset}
@@ -133,10 +134,10 @@ paPlotData <- bind_cols(pcaPAscores, meanLabels)
 ```
 
 ```{r PA PCA Plot}
-# svglite(filename = here::here("Figures", "PCA_DevoPA.svg"),
-#         pointsize = 6,
-#         width = 3.5,
-#         height = 3.5)
+svglite(filename = here::here("Figures", "PCA_DevoPA.svg"),
+        pointsize = 6,
+        width = 3.5,
+        height = 3.5)
 plot(NULL,
      xlim = range(paPlotData$Comp1),
      ylim = range(paPlotData$Comp2),
@@ -174,7 +175,7 @@ legend("topright",
        text.col = "black", 
        horiz = F ,
        inset = c(0.0, 0.0))
-# dev.off()
+dev.off()
 ```
 
 ```{r MES Subset}
@@ -195,10 +196,10 @@ mesPlotData <- bind_cols(pcaMESscores, meanLabels)
 ```
 
 ```{r MES PCA Plot}
-# svglite(filename = here::here("Figures", "PCA_DevoMES.svg"),
-#         pointsize = 6,
-#         width = 3.5,
-#         height = 3.5)
+svglite(filename = here::here("Figures", "PCA_DevoMES.svg"),
+        pointsize = 6,
+        width = 3.5,
+        height = 3.5)
 plot(NULL,
      xlim = range(mesPlotData$Comp1),
      ylim = range(mesPlotData$Comp2),
@@ -236,19 +237,21 @@ legend("topleft",
        text.col = "black", 
        horiz = F ,
        inset = c(0.0, 0.0))
-# dev.off()
+dev.off()
 ```
 
 #save mean partitions for later Wheatsheaf code
 ```{r}
-load(file="./Data/Processed/Partition_species_coords.rda")
+
+
+load(here("Data", "Processed", "Partition_species_coords.rda"))
 
 Partition_species_coords$FNP <- coordsFNP
 Partition_species_coords$Pa <- coordsPA
 Partition_species_coords$Mes <- coordsMES
  
 
-save(Partition_species_coords,meanLabels, file="./Data/Processed/Partition_species_coords.rda")
+save (Partition_species_coords,meanLabels, file=here("Data", "Processed", "Partition_species_coords.rda"))
 
 ```
 

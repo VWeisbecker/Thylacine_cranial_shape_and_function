@@ -10,10 +10,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-library(phytools) # CRAN v2.4-4
-library(svglite)  # CRAN v2.2.1
-library(here)     # CRAN v1.0.1
+library(phytools) # CRAN v2.5-2
+library(svglite)  # CRAN v2.2.2
+library(here)     # CRAN v1.0.2
 ```
+
 ```{r Load data}
 Pdistance <- read.csv(here("Figures", "Combined_Procdist_table.csv"))
 tree <- read.tree(here("Data", "phyloGMM.tre"))
@@ -80,17 +81,17 @@ fMap<-setMap(FNPMap,c("#1a1509","#e69f00","#ebcbc7","#f1eef6"))
 
 ```{r Plot Functional figures}
 svglite(filename = here("Figures", "CranialPdist.svg"))  
-plot(cMap2, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
+plot(cMap, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
 title(main = "Cranial Pdist")
 dev.off()
 
 svglite(filename = here("Figures", "RostralPdist.svg"))  
-plot(rMap2, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
+plot(rMap, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
 title(main = "Rostral Pdist")
 dev.off()
 
 svglite(filename = here("Figures", "NeurocranialPdist.svg"))  
-plot(nMapInv, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
+plot(nMap, lwd=c(2.5,6), fsize = c(.6, .75), outline=FALSE)
 title(main = "Neurocranial Pdist")
 dev.off()
 ```

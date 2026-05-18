@@ -9,13 +9,13 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# This is an updated GMM_GPA file incorporating the zygomatic arches and glenoid fossa into the neurocranial landmark partition
 
 
 ```{r Load packages}
-library(geomorph) # CRAN v4.0.10 
-library(dplyr)    # CRAN v1.1.4    
-library(here)     # CRAN v1.0.1    
+library(geomorph) # CRAN v4.0.10
+library(dplyr)    # CRAN v1.2.0
+library(here)     # CRAN v1.0.2 
+library(rgl)      #CRAN v1.3.34
 ```
 
 ```{r Read data}
@@ -267,6 +267,7 @@ paLmkSymm <- bilat.symmetry(A = paGPA,
                               RRPP = TRUE,
                               iter = 999)
 ```
+
 ```{r Check}
 spheres3d(paLmkSymm$symm.shape[,,"Andrewsarchus_mongoliensis_20135"],
           radius = 0.004,
@@ -322,11 +323,5 @@ spheres3d(mesLmkSymm$symm.shape[,,"Andrewsarchus_mongoliensis_20135"],
 ```{r}
  save(mesLmkSymm, mesCsize, file = here("Data", "Processed", "mesLmkSymm.rda"))
 ```
-
-
-
-
-
-
 
 

@@ -1,6 +1,6 @@
 ---
 title: "Rosette_Analysis"
-author: "DSRovinsky"
+author: "DSRovinsky, VWeisbecker"
 date: "2023-01-17"
 output: html_document
 editor_options:
@@ -16,11 +16,12 @@ library(geomorph) # CRAN v4.0.10
 library(ape)      # CRAN v5.8-1
 library(geiger)   # CRAN v2.0.11
 library(nlme)     # CRAN v3.1-168
-library(dplyr)    # CRAN v1.1.4
-library(svglite)  # CRAN v2.2.1
-library(here)     # CRAN v1.0.1
-library(Ternary)  # CRAN v2.3.4
+library(dplyr)    # CRAN v1.2.0
+library(svglite)  # CRAN v2.2.2
+library(here)     # CRAN v1.0.2
+library(Ternary)  # CRAN v2.3.6
 library(Rvcg)     # CRAN v0.25
+library(rgl)     # CRAN v1.3.34
 
 # Load phylogeny: this is the composite tree from Rovinsky et al., 2021, with the fossil taxa added
 phyTree <- read.tree(here::here("Data", "phyloGMM.tre"))
@@ -56,12 +57,12 @@ linearDists <- linearDists[,-1]
 
 ```
 
-#Creating the meshes for screenshotting - this is commented out but just to replicate how we made the ventral views in fig. 5. The usrmats are already created and in Figures/Usrmats
+#Creating the meshes for screenshotting - this is commented out but just to replicate how we made the ventral views in fig. 5
 ```{r}
 # 
 
 # 
-#mesh <- vcgPlyRead("./Data/ThCy5749CRA.ply")
+mesh <- vcgPlyRead(here("Data","ThCy5749CRA.ply"))
 # 
 # # #a little code to set the cranial orientations for later plotting more easily
 # # FOV = 0 # sets parallel projection, rather than orthogonal
@@ -78,10 +79,10 @@ linearDists <- linearDists[,-1]
 # 
 # 
 # # Then you can import for use like:
- usrMat_dorsal <- as.matrix(read.csv("./Figures/Usrmats/mesh_usrMat_dorsal.csv", header = T))
- usrMat_lateral <- as.matrix(read.csv("./Figures/Usrmats/mesh_usrMat_lateral.csv", header = T))
- usrMat_ventral <- as.matrix(read.csv("./Figures/Usrmats/mesh_usrMat_ventral.csv", header = T))
-usrMat_frontal <- as.matrix(read.csv("./Figures/Usrmats/mesh_usrMat_frontal.csv", header = T))
+ usrMat_dorsal <- as.matrix(read.csv("../Figures/Usrmats/mesh_usrMat_dorsal.csv", header = T))
+ usrMat_lateral <- as.matrix(read.csv("../Figures/Usrmats/mesh_usrMat_lateral.csv", header = T))
+ usrMat_ventral <- as.matrix(read.csv("../Figures/Usrmats/mesh_usrMat_ventral.csv", header = T))
+usrMat_frontal <- as.matrix(read.csv("../Figures/Usrmats/mesh_usrMat_frontal.csv", header = T))
 # 
 # #Just checking that the order and content of point labels and raw points are the same - all good
 rawPoints$labels==pointLabels
@@ -91,60 +92,60 @@ rawPoints$labels==pointLabels
 
 ```{r distances figure}
 
-# #mesh and sphere colouration
-# #Spheres
-#   Colours <- "turquoise"
-#   Distballs <- "darkmagenta"
-# #Mesh
-#   Meshcol <- "mistyrose1"
-# #ball radius
-#   Radius_base  <- 1.5
-# #measurement radius
-#   Radius_distpoints <- 2
-# #line widths
-#   linewd <- 5
-# #zoom
-#   zoom=0.9
-# 
-# #pdf(file="./Figures/distances.pdf", width = 8, height = 16)
-#   #Overall image specs
-# 
-# open3d(FOV=0,windowRect=c(0,0,1200,1200), zoom=zoom )
-# 
-# #set up image with three subscenes in one column
-# 
-# mfrow3d(2,2)
-# par(mar = c(0,0,0,0))
-# par(oma = c(0,0,0,0))
-# 
-# usrmats <- list(usrMat_dorsal, usrMat_lateral,usrMat_ventral,usrMat_frontal)
-# 
-# 
-# for (i in 1:length(usrmats)){
-# 
-# 
-# 
-# shade3d (mesh, col= Meshcol, tran = par3d(userMatrix=usrmats[[i]] ), alpha=0.3)#
-# 
-# spheres3d(rawPoints$coords [,, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Colours, radius=1.5)
-# spheres3d(rawPoints$coords [lmk_vector,, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, radius=2)
-# 
-# lines3d(rawPoints$coords [lmk_vector[1:2],, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, lwd=5)
-# lines3d(rawPoints$coords [lmk_vector[3:4],, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, lwd=5)
-# lines3d(rawPoints$coords [lmk_vector[5:6],, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, lwd=5)
-# 
-# 
-#   if (!i == length(usrmats)){next3d()}
-#   else {stop}
-#   }
-# 
-# #Now you have to manually zoom in on just the frontal view
-# 
-# 
-# 
-# 
-# 
-# rgl.snapshot(filename = "./Figures/Supp__distances.png")
+#mesh and sphere colouration
+#Spheres
+  Colours <- "turquoise"
+  Distballs <- "darkmagenta"
+#Mesh
+  Meshcol <- "mistyrose1"
+#ball radius
+  Radius_base  <- 1.5
+#measurement radius
+  Radius_distpoints <- 2
+#line widths
+  linewd <- 5
+#zoom
+  zoom=0.9
+
+#pdf(file="./Figures/distances.pdf", width = 8, height = 16)
+  #Overall image specs
+
+open3d(FOV=0,windowRect=c(0,0,1200,1200), zoom=zoom )
+
+#set up image with three subscenes in one column
+
+mfrow3d(2,2)
+par(mar = c(0,0,0,0))
+par(oma = c(0,0,0,0))
+
+usrmats <- list(usrMat_dorsal, usrMat_lateral,usrMat_ventral,usrMat_frontal)
+
+
+for (i in 1:length(usrmats)){
+
+
+
+shade3d (mesh, col= Meshcol, tran = par3d(userMatrix=usrmats[[i]] ), alpha=0.3)#
+
+spheres3d(rawPoints$coords [,, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Colours, radius=1.5)
+spheres3d(rawPoints$coords [lmk_vector,, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, radius=2)
+
+lines3d(rawPoints$coords [lmk_vector[1:2],, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, lwd=5)
+lines3d(rawPoints$coords [lmk_vector[3:4],, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, lwd=5)
+lines3d(rawPoints$coords [lmk_vector[5:6],, which(dimnames(rawPoints$coords)[[3]]=="Thylacinus_cynocephalus_5749")], col=Distballs, lwd=5)
+
+
+  if (!i == length(usrmats)){next3d()}
+  else {stop}
+  }
+
+#Now you have to manually zoom in on just the frontal view
+
+
+
+
+
+rgl.snapshot(filename = "./Figures/Supp__distances.png")
 
 
 ```
@@ -376,7 +377,7 @@ plotData$PtSet[plotData$Clade == "Metatheria"] <- 23
 #stacked plots!
 
 ```{r Regression plot}
- #svglite(filename = here::here("Figures", "rosette_Regression_stack.svg"), height = 9, width = 6)
+ svglite(filename = here::here("Figures", "rosette_Regression_stack.svg"), height = 9, width = 6)
 
 par(mfrow=c(2,1), mar=c(2,4,0,2))
 
@@ -497,7 +498,7 @@ box(col = "#000000")
 
 
 
-#dev.off()
+dev.off()
 ```
 
 

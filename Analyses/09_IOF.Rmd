@@ -1,6 +1,6 @@
 ---
 title: "IOF_DSR"
-author: "DSRovinsky"
+author: "DSRovinsky, Vera Weisbecker"
 date: '2022-07-28'
 output: html_document
 ---
@@ -15,8 +15,8 @@ library(ape)       # CRAN v5.8-1
 library(geiger)    # CRAN v2.0.11
 library(tidyverse) # CRAN v2.0.0
 library(nlme)      # CRAN v3.1-168
-library(svglite)   # CRAN v2.2.1
-library(here)      # CRAN v1.0.1
+library(svglite)   # CRAN v2.2.2
+library(here)      # CRAN v1.0.2
 ```
 
 ```{r Functions}
@@ -116,8 +116,8 @@ IOFplotData$PtSet[IOFplotData$Group == "Metatheria"] <- 23
 
 # Plot
 ```{r IOF Plot}
-# svglite(filename = here::here("Figures", "IOF_Mass_v3.svg"),
-        # height = 5, width = 6)
+svglite(filename = here::here("Figures", "IOF_Mass_v3.svg"),
+height = 5, width = 6)
 plot(NULL,
      xlim = range(IOFplotData$log_Mass),
      ylim = range(IOFplotData$log_IOF),
@@ -148,7 +148,7 @@ legend("topleft",
        text.col = "black", 
        horiz = F , 
        inset = c(0.01, 0.0))
-#dev.off()
+dev.off()
 ```
 
 ```{r PGLS data}
@@ -326,8 +326,8 @@ range(fullData$Residuals) # range for the plot: -0.7032064  0.5800534
 ```
 
 ```{r PGLS Regression plot}
- #svglite(filename = here::here("Figures", "IOF_MarsupialOnly.svg"),
-     # height = 5, width = 6)
+ svglite(filename = here::here("Figures", "IOF_MarsupialOnly.svg"),
+      height = 5, width = 6)
 
 plot(NULL,
      xlim = range(fullData$log_Mass), # just a little more so the plot is nice and roomy
@@ -375,5 +375,5 @@ text(3, 1,
      font=3)
 box(col = "#000000")
 
-# dev.off()
+ dev.off()
 ```

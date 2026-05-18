@@ -14,13 +14,13 @@ output: html_document
 ```{r }
 
 library(geomorph) # CRAN v4.0.10 
-library(plyr)     # CRAN v1.8.9      
+library(plyr)     # CRAN v1.8.9     
 library(abind)    # CRAN v1.4-8    
 library(ape)      # CRAN v5.8-1      
-library(here)     # CRAN v1.0.1
+library(here)     # CRAN v1.0.2
 library(geiger)   # CRAN v2.0.11
 library(nlme)     # CRAN v3.1-168
-library(svglite)  # CRAN v2.2.1
+library(svglite)  # CRAN v2.2.2
 
 # This sets the wd to local
 library(rstudioapi) # Safely Access the RStudio API
@@ -272,9 +272,6 @@ plotOutliers(GPA_Allmean$coords)
 
 ```
 
-```{r}
-
-```
 
 ### Here we change authors and the following poor excuse for code is written by DSRovinsky
 
@@ -324,6 +321,7 @@ fit2 <- gls(log10(Csize) ~ log10(Body_mass_g),
 anova(fit1, fit2)
 # fit2 model is best
 ```
+
 ```{r qq checks}
 plot(fit2, 
      resid(., type = "n")~fitted(.),
@@ -384,8 +382,8 @@ anova(fullFit1, fullFit2)
 
 
 ```{r}
-# svglite(filename = here::here("Figures", "MarsupialOnly_Csize_Reg.svg"),
-#         height = 5, width = 6)
+svglite(filename = here::here("Figures", "MarsupialOnly_Csize_Reg.svg"),
+        height = 5, width = 6)
 plot(NULL,
      xlim = range(log10(specieslist$Body_mass_g)),
      ylim = range(log10(specieslist$Csize)), 
@@ -433,6 +431,6 @@ text(1.9, 2.3,
      "Didelphis marsupialis", 
      font=3)
 box(col = "black")
-# dev.off()
+ dev.off()
 ```
 

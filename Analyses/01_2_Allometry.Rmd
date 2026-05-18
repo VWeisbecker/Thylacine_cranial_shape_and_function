@@ -7,15 +7,17 @@ editor_options:
   chunk_output_type: console
 ---
 
+##We are mostly ignoring the effect of allometry on shape in the main ms because it is not expected to have a substantial effect given the diverse sample. Here are all the analyses supporting this assumption.
 
 ```{r}
 
-library(geomorph)  # CRAN v4.0.10
-library(ape)       # CRAN v5.8-1       
-library(caper)     # CRAN v1.0.3    
+library(geomorph)  # CRAN v4.0.10 
+library(ape)       # CRAN v5.8-1 
+library(caper)     # CRAN v1.0.4 
 library(tidyverse) # CRAN v2.0.0 
-library(svglite)   # CRAN v2.2.1 
-library(here)      # CRAN v1.0.1     
+library(svglite)   # CRAN v2.2.2 
+library(here)      # CRAN v1.0.2 
+library(rgl)       #CRAN v1.3.34
 
 load(here("Data", "Processed", "skullLmkSymm.rda"))
 load(here("Data", "Processed", "rostralLmkSymm.rda"))
@@ -451,6 +453,8 @@ write.csv(allometry_output_table, file = "./Figures/Allometry_output.csv")
 Allom_PCAs <- list(skull=NULL, rostral=NULL, neuro=NULL, fnp=NULL, pa=NULL, mes=NULL)
  temp <-NULL
 
+#Data frames with PC scores and Csize bound
+ 
 for (i in 1:length(Allom_PCAs)){
   
 temp<- gm.prcomp(allometry_gdfs[[i]]$coords)
@@ -561,9 +565,7 @@ write.csv(Table_1, file="./Figures/Table_1_Allometry.csv")
 
 ```
 
-
-
-#Allometry of separate clades,The most appropriate for this dataset are marsupials, feliforms, and canids. W
+#Allometry of separate clades,the most appropriate for this dataset are marsupials, feliforms, and canids. 
 
 #create allometry ANCOVAs with clades as factor. 
 
@@ -597,7 +599,9 @@ for (i in 1:length( allometry_gdfs)){
   names(allometry_clade_gdfs[[i]]$Csize) <- dimnames(allometry_clade_gdfs[[i]]$coords)[[3]]
 }
 
-#all 58, as it should be, and all data contained in here
+
+
+#all 59, as it should be, and all data contained in here
 allometry_clade_gdfs[[i]]$phy
 dimnames(allometry_clade_gdfs[[i]]$coords)[[3]]
 allometry_clade_gdfs[[i]]$Csize
@@ -606,7 +610,11 @@ names(allometry_clade_gdfs)
 
 allometry_clade_gdfs$skull$labels
 
+#sample sizes:
 
+length(which(Labels_allometry_partitions$Clade=="Feliformia"))
+length(which(Labels_allometry_partitions$Clade=="Caniformia"))
+length(which(Labels_allometry_partitions$Clade=="Metatheria"))
 
 rawtree_clades <- rawTree
 
@@ -630,11 +638,262 @@ rawtree_clades <- rawTree
 
 ```
 
-# moving on to by-clade analysis, using LM because pgls would remove this signal
+# moving on to by-clade analysis, we were initially not sure if pgls or lm are better here (because below we use lm to compare clades), we ended up settling for pgls but the point is the same for both- different partitions have different allometries in different clades. 
+#first checking if there even is allometry within the clades. 
+```{r}
+
+
+#the coordinates and csize could all be subsectioned into the main clades within the loop, but that makes it unintelligible. So the loop below creates a list of vectors that pulls out the species within each clade outside the loop.
+
+
+#Create a list for allometries for individual clades. I have this from co-pilot, nice quick workflow!
+allom_gdf_by_clade <- setNames(vector("list", 3), paste(levels(allometry_clade_gdfs$skull$labels$Clade)))
+
+
+for (i in 1: length(levels(allometry_clade_gdfs$skull$labels$Clade))){
+  
+  allom_gdf_by_clade[[i]] <- which(allometry_clade_gdfs$skull$labels$Clade==levels(allometry_clade_gdfs$skull$labels$Clade)[i])
+  
+}
+
+
+#Create a list with the 6 partitions and each partition has the 3 species - again, Copilot is a gem here. Use "replicate" to make lists with multiple named sublists
+allometry_clade_alloms_within_clade <- replicate(length(allometry_clade_gdfs), 
+                                                 setNames(vector("list",
+                                                          length(levels(allometry_clade_gdfs$skull$labels$Clade))),
+                                                          paste(levels(allometry_clade_gdfs$skull$labels$Clade))),
+                                                          simplify=FALSE
+                                                 )
+#then name the list elements one level up
+names(allometry_clade_alloms_within_clade) <- names(allometry_clade_gdfs)
+
+#Below for lm
+
+for (i in 1: length(allometry_clade_gdfs)){
+
+  for (j in 1:length(levels(allometry_clade_gdfs$skull$labels$Clade))){
+
+  allometry_clade_alloms_within_clade[[i]][[j]] <- summary(
+                                                  procD.lm(
+      allometry_clade_gdfs[[i]]$coords[,,allom_gdf_by_clade[[j]]] ~        log(allometry_clade_gdfs[[i]]$Csize[allom_gdf_by_clade[[j]]] )
+      )
+      )
+
+  }
+}
+
+#Then PGLS
+
+allometry_clade_alloms_within_clade_pgls <- allometry_clade_alloms_within_clade
+
+for (i in 1: length(allometry_clade_gdfs)){
+  
+  for (j in 1:length(levels(allometry_clade_gdfs$skull$labels$Clade))){
+    
+  allometry_clade_alloms_within_clade_pgls[[i]][[j]] <- summary(
+                                                  procD.pgls(
+      allometry_clade_gdfs[[i]]$coords[,,allom_gdf_by_clade[[j]]] ~        log(allometry_clade_gdfs[[i]]$Csize[allom_gdf_by_clade[[j]]] ),
+          phy = keep.tip(allometry_clade_gdfs$skull$phy,
+            names(allometry_clade_gdfs$skull$Csize[allom_gdf_by_clade[[j]]]))
+      )
+      )
+      
+  }
+}
+
+cani_test <- keep.tip(allometry_clade_gdfs$skull$phy, names(allometry_clade_gdfs$skull$Csize[allom_gdf_by_clade$Caniformia]))
+
+cani_test$tip.label == names(allometry_clade_gdfs$skull$Csize[allom_gdf_by_clade$Caniformia])
+
+#This seems to have worked, but just to check that it's really working - the below list vs manual coding show identical results
+
+allometry_clade_alloms_within_clade$rostral$Caniformia
+
+summary(procD.lm(allometry_clade_gdfs$rostral$coords[,,which(allometry_clade_gdfs$skull$labels$Clade== "Caniformia")] ~ log(allometry_clade_gdfs$rostral$Csize[which(allometry_clade_gdfs$skull$labels$Clade== "Caniformia") ] )))
+
+#Now pull out the relevant values for a table 
+```
+
+#Table. I am here for space reasons relying on replacing allometry_clade_alloms_within_clade with allometry_clade_alloms_within_clade_pgls for generating teh table csv. Not elegant, but does the job
+```{r}
+#Matrix with four rows per comparison (partition name, size, clade and interaction)
+Allometry_table_within_each_clade <- matrix (nrow=(length(allometry_clade_alloms_within_clade_pgls)*4), ncol = 4)
+colnames(Allometry_table_within_each_clade)<-c("SS", "F", "RSq", "p" )
+
+rownames(Allometry_table_within_each_clade)<- rep ( c(NA,levels(allometry_clade_gdfs$skull$labels$Clade)), length(allometry_clade_alloms_within_clade_pgls))
+#Row names just for the partitions
+rownames(Allometry_table_within_each_clade)[c(1,c(1:(length(names(allometry_clade_gdfs))-1)*4)+1)] <- names(allometry_clade_alloms_within_clade_pgls)
+
+#The loop. Surely there is an easier way!
+
+for (i in 1: length (allometry_clade_fits)){
+  
+   for (j in 1: length(levels(allometry_clade_gdfs$skull$labels$Clade))){
+
+  #SS
+  Allometry_table_within_each_clade[(((i)*4)+j-3),1] <- round(allometry_clade_alloms_within_clade_pgls[[i]][[j]]$table$SS[1], 3)
+  #Z - I don't see the point of two similar metrics of effect size, hopefully I'm not wrong but I don't think it is informative
+  #Allometry_table_within_each_clade[(((i)*4)+j-3),2] <- round(allometry_clade_alloms_within_clade_pgls[[i]][[j]]$table$Z[1], 3)
+  #F
+  Allometry_table_within_each_clade[(((i)*4)+j-3),2] <- round(allometry_clade_alloms_within_clade_pgls[[i]][[j]]$table$F[1], 3)
+  #Rsq
+  Allometry_table_within_each_clade[(((i)*4)+j-3),3] <- round(allometry_clade_alloms_within_clade_pgls[[i]][[j]]$table$Rsq[1],2)
+  #p
+  Allometry_table_within_each_clade[(((i)*4)+j-3),4] <- round(allometry_clade_alloms_within_clade_pgls[[i]][[j]]$table$`Pr(>F)`[1], 3)
+  
+  }
+  
+} 
+ 
+
+write.csv(Allometry_table_within_each_clade, file="./Figures/Allometry_table_within_each_clade.csv") 
+#check check
+summary(procD.lm(allometry_clade_gdfs$mes$coords[,,which(allometry_clade_gdfs$mes$labels$Clade== "Metatheria")] ~ log(allometry_clade_gdfs$mes$Csize[which(allometry_clade_gdfs$mes$labels$Clade== "Metatheria") ] )))
+
+
+```
+
+Now we also want to visualise the shape variation within each clade
+```{r}
+
+#First, create by-clade allom plots for the allom-by-clade fit.For this, we need both the fits and the plots.
+
+#Unfortunately, we used the summaries not the fits above, so now we have to make the fits first. Here first over-writing the allometry_clade_alloms_within_clade object containing the summaries.
+
+allometry_clade_alloms_within_clade_fits <- allometry_clade_alloms_within_clade
+
+for (i in 1: length(allometry_clade_gdfs)){
+  
+  for (j in 1:length(levels(allometry_clade_gdfs$skull$labels$Clade))){
+    
+  allometry_clade_alloms_within_clade_fits[[i]][[j]] <- 
+                                                  procD.lm(
+      allometry_clade_gdfs[[i]]$coords[,,allom_gdf_by_clade[[j]]] ~        log(allometry_clade_gdfs[[i]]$Csize[allom_gdf_by_clade[[j]]] )
+      )
+      
+      
+  }
+}
+
+
+#Making a plot list with the right names, then run code
+Allom_plots_within_each_clade <- allometry_clade_alloms_within_clade
+
+for (i in 1: length (allometry_clade_alloms_within_clade)){
+  
+   for (j in 1: length(allometry_clade_alloms_within_clade_fits$skull)){
+
+Allom_plots_within_each_clade [[i]][[j]] <- plot(allometry_clade_alloms_within_clade_fits[[i]][[j]],
+                                            type="regression", 
+                                            #This needs a wordy split of the gdf dataset by subgroup, how annoying
+                                            predictor = log(allometry_clade_gdfs[[i]]$Csize[allom_gdf_by_clade[[j]]] ),
+                                            reg.type = "RegScore")
+
+   }
+}
+
+#Now making another loop for predicted shapes
+
+#Making a plot list with the right names, then run code
+Allom_preds <- allometry_clade_alloms_within_clade
+
+for (i in 1: length (allometry_clade_alloms_within_clade)){
+  
+   for (j in 1: length(allometry_clade_alloms_within_clade_fits$skull)){
+
+Allom_preds [[i]][[j]] <- shape.predictor(allometry_clade_alloms_within_clade_fits[[i]][[j]]$GM$fitted,
+                                          x=Allom_plots_within_each_clade[[i]][[j]]$RegScore,
+                                          predmin=min(Allom_plots_within_each_clade[[i]][[j]]$RegScore), 
+                                          predmax=max(Allom_plots_within_each_clade[[i]][[j]]$RegScore)
+                                          )
+   }
+}
+```
+
+Producing the displacement graphs could be done in a loop and usrmats but that would require tons of fiddling with imageMagick etc. to remove the white space. So here it is more manually with screenshots saved (and I had to jiggle the radii for PA (0.0001) and MES (0.001) because they became tiny on the plot)
 
 ```{r}
 
-#Caniforms, feliforms, marsupials;  labels$Clade . Note that we had previously run this with Borhyaena removed (it is a non-marsupial so we were on the fence about including it), but the results are nearly the same with slightly smaller (0.01 max different Rsquareds)
+predcols <- c("#fff0e0", "#ffaa5c", "#e0f0ff")
+
+
+
+for (i in 1: length (allometry_clade_alloms_within_clade)){
+
+#ensures that a new window is opened  
+open3d()  
+mfrow3d(1,3,sharedMouse = TRUE, byrow = TRUE)
+ 
+  
+   for (j in 1: length(allometry_clade_alloms_within_clade_fits$skull)){
+
+#set up
+panel_w <- 700
+panel_h <- 700
+border  <- 0  # tweak if your window manager adds borders you want to compensate
+par3d(windowRect = c(100, 100, 100 + 3*panel_w + 2*border, 100 + panel_h + 2*border))
+
+par3d(skipRedraw=TRUE)
+
+#next3d() needs to be first, not last, otherwise the first window goes blank.
+next3d()
+
+#making colourised spheres according to the individual allometry plots in the supps
+spheres3d(Allom_preds[[i]][[j]]$predmin, col=predcols[j], radius=0.0015)
+
+#plotreftotarget with slightly smaller radii - unfortunately, the colour can't easily be added to plotreftotarget
+plotRefToTarget(Allom_preds[[i]][[j]]$predmin, Allom_preds[[i]][[j]]$predmax, method="vector", radius=0.0009, add=TRUE)
+
+par3d(skipRedraw = FALSE)
+
+   }
+
+}
+                
+```
+
+Specifically asking if small-thylacine displacement resembles small-large displacement - not published but we were curious after a reviewer asked
+
+```{r}
+
+#ensures that a new window is opened  
+open3d()  
+mfrow3d(1,2,sharedMouse = TRUE)
+
+plotRefToTarget(Allom_preds$skull$Metatheria$predmin, Allom_preds$skull$Metatheria$predmax, method="vector" )
+
+#this is allometry towards largest, but it includes thylacine and sarcophilus as high-leverage outliers
+plotRefToTarget(Allom_preds$skull$Metatheria$predmin, allometry_gdfs$skull$coords[,,which(dimnames(allometry_gdfs$skull$coords)[[3]]=="Thylacinus_cynocephalus")], method="vector")
+
+#So now taking out those two to ask if the thylacine is a scaled-up smaller marsupial carnivore and not considering any of the large high-leverage outliers - thylacine, devil, borhyaena. But no, at this level, allometry is not even significant any more - small samples size is an issue here for sure but also there's just NO STRONG EFFECT
+
+#Se[arate out marsupials first so the code doesn't get too long
+Skull_coords_mars <-allometry_gdfs$skull$coords[,,allom_gdf_by_clade$Metatheria]
+
+Skull_coords_mars_noTS <- Skull_coords_mars [,,-(which(dimnames(Skull_coords_mars)[[3]]%in% c( "Borhyaena_tuberata", "Thylacinus_cynocephalus", "Sarcophilus_harrisii")))]
+
+
+Skull_size_mars <- allometry_gdfs$skull$Csize[allom_gdf_by_clade$Metatheria]
+names(Skull_size_mars) <- dimnames(Skull_coords_mars)[[3]]
+
+Skull_size_mars_noTS <- Skull_size_mars [-(which(dimnames(Skull_coords_mars)[[3]]%in% c( "Borhyaena_tuberata", "Thylacinus_cynocephalus", "Sarcophilus_harrisii")))]
+
+tree_mars <- keep.tip(rawTree, names(Skull_size_mars_noTS))
+
+match(tree_mars$tip.label,names(Skull_size_mars_noTS))
+
+small_das_fit <- procD.pgls(Skull_coords_mars_noTS~ log(Skull_size_mars_noTS), tree_mars)
+
+summary(small_das_fit)
+
+
+```
+
+
+```{r}
+
+#Caniforms, feliforms, marsupials;  labels$Clade . Note that we had previously run this with Borhyaena removed (it is a non-marsupial so we were on the fence about including it), but the results are nearly the same with slightly smaller (0.01 max different) Rsquareds
+
 
 
 for (i in 1: length(allometry_clade_gdfs)){
@@ -755,9 +1014,9 @@ for (i in 1: length(allometry_clade_gdfs)){
   
  
 
-#text(Allom_plots[[i]]$RegScore~log(allometry_clade_gdfs[[i]]$Csize), labels = PlotData_Allom$ID)
+text(Allom_plots[[i]]$RegScore~log(allometry_clade_gdfs[[i]]$Csize), labels = PlotData_Allom$ID)
 
-  abline(coef(lm(Allom_plots[[i]]$RegScore~log(allometry_clade_gdfs[[i]]$Csize))))
+  #abline(coef(lm(Allom_plots[[i]]$RegScore~log(allometry_clade_gdfs[[i]]$Csize))))
 
 legend("topleft",
        legend = expression("Feliforms", "Caniforms",
@@ -777,7 +1036,6 @@ legend("topleft",
 dev.off()
 
 ```
-
 
 
 #slope comparison using pairwise
@@ -808,6 +1066,8 @@ for (i in 1: length(allometry_clade_gdfs)){
 pairwisecheck <- pairwise(allometry_clade_SLOPE_fits$Cranium, groups=allometry_clade_gdfs[[i]]$labels$Clade, covariate =log(allometry_clade_gdfs$skull$Csize) )
 summary (pairwisecheck)
 
+summary.pairwise(pairwisecheck, test.type = "VC", angle.type = "deg")
+
 #now the whole thing, going straight for summaries
 #these are always the same, so coding them here
 groups <- allometry_clade_gdfs$skull$labels$Clade
@@ -825,7 +1085,7 @@ pairwise_tests_mean <- list(Cranium=NULL, Rostrum=NULL, Neurocranium=NULL, FNP=N
 
 for (i in 1: length(allometry_clade_MEAN_fits) ){
   
-  pairwise_tests_mean[[i]] <- summary(pairwise(allometry_clade_MEAN_fits[[i]], groups=groups, covariate =log(allometry_clade_gdfs[[i]]$Csize) ))
+  pairwise_tests_mean[[i]] <- summary(pairwise(allometry_clade_MEAN_fits[[i]], groups=groups))
 
 }
 
@@ -845,10 +1105,11 @@ rownames(pairwise_table_mean)[(((i-1)*4)+1):(i*4)]<- c(names(pairwise_tests_mean
 
 }
 
-colnames(pairwise_table_mean)<-c("d", "UCL 95%", "Z", "p" )
+colnames(pairwise_table_mean)<-c("d", "UCL 95%", "Z", "p_mean" )
 
 #Slope table is identical, creating it here
 pairwise_table_slope <- pairwise_table_mean
+colnames(pairwise_table_slope)<-c("d", "UCL 95%", "Z", "p_slope" )
 
 #Now fill in the results, running everything here becasue it's easier and doesn't really matter
 #slopes first
@@ -857,24 +1118,24 @@ for (i in 2: length (pairwise_tests_slope)){
   
 #again, 1 needs separate treatment
   #d
-  pairwise_table_slope[2:4,1] <- pairwise_tests_slope[[1]]$summary.table$d
+  pairwise_table_slope[2:4,1] <- round(pairwise_tests_slope[[1]]$summary.table$d, 3)
   #UCL
-  pairwise_table_slope[2:4,2] <- pairwise_tests_slope[[1]]$summary.table$`UCL (95%)`
+  pairwise_table_slope[2:4,2] <- round(pairwise_tests_slope[[1]]$summary.table$`UCL (95%)`, 3)
   #Z
-  pairwise_table_slope[2:4,3] <- pairwise_tests_slope[[1]]$summary.table$Z
+  pairwise_table_slope[2:4,3] <- round(pairwise_tests_slope[[1]]$summary.table$Z, 3)
   #p
-  pairwise_table_slope[2:4,4] <- pairwise_tests_slope[[1]]$summary.table$`Pr > d`
+  pairwise_table_slope[2:4,4] <- round(pairwise_tests_slope[[1]]$summary.table$`Pr > d`, 3)
 
   
   #now all the others. i-1*4+2 here (not +1) because the row with the name of the partition is blank
   #SS
-  pairwise_table_slope[(((i-1)*4)+2):(i*4),1] <- pairwise_tests_slope[[i]]$summary.table$d
+  pairwise_table_slope[(((i-1)*4)+2):(i*4),1] <- round(pairwise_tests_slope[[i]]$summary.table$d, 3)
   #Rsq
-  pairwise_table_slope[(((i-1)*4)+2):(i*4),2] <- pairwise_tests_slope[[i]]$summary.table$`UCL (95%)`
+  pairwise_table_slope[(((i-1)*4)+2):(i*4),2] <- round(pairwise_tests_slope[[i]]$summary.table$`UCL (95%)`, 3)
   #F
-  pairwise_table_slope[(((i-1)*4)+2):(i*4),3] <- pairwise_tests_slope[[i]]$summary.table$Z
+  pairwise_table_slope[(((i-1)*4)+2):(i*4),3] <- round(pairwise_tests_slope[[i]]$summary.table$Z, 3)
   #F
-  pairwise_table_slope[(((i-1)*4)+2):(i*4),4] <- pairwise_tests_slope[[i]]$summary.table$`Pr > d`
+  pairwise_table_slope[(((i-1)*4)+2):(i*4),4] <- round(pairwise_tests_slope[[i]]$summary.table$`Pr > d`, 3)
   
 }
 
@@ -883,30 +1144,123 @@ for (i in 2: length (pairwise_tests_mean)){
   
 #again, 1 needs separate treatment
   #d
-  pairwise_table_mean[2:4,1] <- pairwise_tests_mean[[1]]$summary.table$d
+  pairwise_table_mean[2:4,1] <- round(pairwise_tests_mean[[1]]$summary.table$d, 3)
   #UCL
-  pairwise_table_mean[2:4,2] <- pairwise_tests_mean[[1]]$summary.table$`UCL (95%)`
+  pairwise_table_mean[2:4,2] <- round(pairwise_tests_mean[[1]]$summary.table$`UCL (95%)`, 3)
   #Z
-  pairwise_table_mean[2:4,3] <- pairwise_tests_mean[[1]]$summary.table$Z
+  pairwise_table_mean[2:4,3] <- round(pairwise_tests_mean[[1]]$summary.table$Z,3)
   #p
-  pairwise_table_mean[2:4,4] <- pairwise_tests_mean[[1]]$summary.table$`Pr > d`
+  pairwise_table_mean[2:4,4] <- round(pairwise_tests_mean[[1]]$summary.table$`Pr > d`,3)
 
   
   #now all the others. i-1*4+2 here (not +1) because the row with the name of the partition is blank
   #SS
-  pairwise_table_mean[(((i-1)*4)+2):(i*4),1] <- pairwise_tests_mean[[i]]$summary.table$d
+  pairwise_table_mean[(((i-1)*4)+2):(i*4),1] <- round(pairwise_tests_mean[[i]]$summary.table$d, 3)
   #Rsq
-  pairwise_table_mean[(((i-1)*4)+2):(i*4),2] <- pairwise_tests_mean[[i]]$summary.table$`UCL (95%)`
+  pairwise_table_mean[(((i-1)*4)+2):(i*4),2] <- round(pairwise_tests_mean[[i]]$summary.table$`UCL (95%)`, 3)
   #F
-  pairwise_table_mean[(((i-1)*4)+2):(i*4),3] <- pairwise_tests_mean[[i]]$summary.table$Z
+  pairwise_table_mean[(((i-1)*4)+2):(i*4),3] <- round(pairwise_tests_mean[[i]]$summary.table$Z, 3)
   #F
-  pairwise_table_mean[(((i-1)*4)+2):(i*4),4] <- pairwise_tests_mean[[i]]$summary.table$`Pr > d`
+  pairwise_table_mean[(((i-1)*4)+2):(i*4),4] <- round(pairwise_tests_mean[[i]]$summary.table$`Pr > d`, 3)
   
 }
 
 
 
-write.csv(cbind (pairwise_table_slope,pairwise_table_mean), file="./Figures/Pairwise_tables.csv")
 
 ```
 
+Now we also want to include the angles between slopes where we have them. Unfortunately, that requires a slightly different approach of 1) saving the pairwise tests and 2) running the pairwise.text functionality to specify that we're after the angles. Otherwise, the statistics are the same though. So just to get this over the line, doing another big bunch of coding here to append to the pairwise table slopes.
+
+```{r}
+
+pairwise_tests_slope_angles_pairwise_objects <- list(Cranium=NULL, Rostrum=NULL, Neurocranium=NULL, FNP=NULL, PA=NULL, MES=NULL)
+
+for (i in 1: length(allometry_clade_SLOPE_fits) ){
+  
+  pairwise_tests_slope_angles_pairwise_objects[[i]] <- pairwise(allometry_clade_SLOPE_fits[[i]], groups=groups, covariate =log(allometry_clade_gdfs[[i]]$Csize) )
+
+}
+
+pairwise_tests_slope_angles_pairwise_tests <- list(Cranium=NULL, Rostrum=NULL, Neurocranium=NULL, FNP=NULL, PA=NULL, MES=NULL)
+
+for (i in 1: length(pairwise_tests_slope_angles_pairwise_objects) ){
+  
+  pairwise_tests_slope_angles_pairwise_tests[[i]] <- summary.pairwise(pairwise_tests_slope_angles_pairwise_objects[[i]], test.type = "VC", angle.type = "deg")
+
+}
+
+#make table
+pairwise_table_angles <- matrix (nrow=(length(pairwise_tests_slope_angles_pairwise_tests)*4), ncol = 5)
+#Allometry_table_within_each_clade <- matrix (nrow=(length(allometry_clade_alloms_within_clade)*4), ncol = 4)
+colnames(pairwise_table_angles)<-c("r", "angle", "UCL(95%)", "Z", "p_angles" )
+
+rownames(pairwise_table_angles)<- rep ( c(NA,levels(allometry_clade_gdfs$skull$labels$Clade)), length(allometry_clade_alloms_within_clade))
+#Row names just for the partitions
+rownames(pairwise_table_angles)[c(1,c(1:(length(names(allometry_clade_gdfs))-1)*4)+1)] <- names(allometry_clade_alloms_within_clade)
+
+#the loop
+
+#now mean
+for (i in 2: length (pairwise_tests_slope_angles_pairwise_tests)){
+  
+#again, 1 needs separate treatment
+  #r
+  pairwise_table_angles[2:4,1] <- round(pairwise_tests_slope_angles_pairwise_tests[[1]]$summary.table$r, 3)
+  #angle
+  pairwise_table_angles[2:4,2] <- round(pairwise_tests_slope_angles_pairwise_tests[[1]]$summary.table$angle, 1)
+  #UCL
+  pairwise_table_angles[2:4,3] <- round(pairwise_tests_slope_angles_pairwise_tests[[1]]$summary.table$`UCL (95%)`, 3)
+  #Z
+  pairwise_table_angles[2:4,4] <- round(pairwise_tests_slope_angles_pairwise_tests[[1]]$summary.table$Z, 3)
+  #p
+  pairwise_table_angles[2:4,5] <- round(pairwise_tests_slope_angles_pairwise_tests[[1]]$summary.table$`Pr > angle`, 3)
+  
+  
+  #now the rest
+    #r
+   pairwise_table_angles[(((i-1)*4)+2):(i*4),1] <- round(pairwise_tests_slope_angles_pairwise_tests[[i]]$summary.table$r, 3)
+  #angle
+  pairwise_table_angles[(((i-1)*4)+2):(i*4),2] <- round(pairwise_tests_slope_angles_pairwise_tests[[i]]$summary.table$angle, 1)
+  #UCL
+  pairwise_table_angles[(((i-1)*4)+2):(i*4),3] <- round(pairwise_tests_slope_angles_pairwise_tests[[i]]$summary.table$`UCL (95%)`, 3)
+  #Z
+  pairwise_table_angles[(((i-1)*4)+2):(i*4),4] <- round(pairwise_tests_slope_angles_pairwise_tests[[i]]$summary.table$Z, 3)
+  #p
+  pairwise_table_angles[(((i-1)*4)+2):(i*4),5] <- round(pairwise_tests_slope_angles_pairwise_tests[[i]]$summary.table$`Pr > angle`, 3)
+  }
+
+
+write.csv(cbind (pairwise_table_slope,pairwise_table_angles,pairwise_table_mean), file="./Figures/Pairwise_tables.csv")
+
+#lm.rrpp.fit does not usually adjust for multiple comparisons and the authors don't mention it. But the final editorial comments asked for information about adjustment and this made VW realise that there seems to be no good reason not to do them. To make it easier, we here adjust the p values with a simple benjamini hochberg adjustment after the fact
+pairwise_table_bj<-(cbind (pairwise_table_slope,pairwise_table_angles,pairwise_table_mean))[,c(4,9,13)]
+pairwise_table_p<-(cbind (pairwise_table_slope,pairwise_table_angles,pairwise_table_mean))[,c(4,9,13)]
+
+
+#this loop just runs through all the p values
+
+
+for (i in seq(1,nrow(pairwise_table_p)-3, by=4)){
+  
+  pairwise_table_bj[(i+1):(i+3),1]<-p.adjust(pairwise_table_p[(i+1):(i+3),1], method="hochberg")
+  pairwise_table_bj[(i+1):(i+3),2]<-p.adjust(pairwise_table_p[(i+1):(i+3),2], method="hochberg")
+  pairwise_table_bj[(i+1):(i+3),3]<-p.adjust(pairwise_table_p[(i+1):(i+3),3], method="hochberg")
+  
+  
+}
+
+
+write.csv(pairwise_table_bj, file = "Figures/Pairwise_adjusted_pvalues.csv")
+
+#check check tick tick - always check! All good.set i to below 6  first.
+
+pairwisecheck <- pairwise(allometry_clade_SLOPE_fits[[i]], groups=allometry_clade_gdfs[[i]]$labels$Clade, covariate =log(allometry_clade_gdfs$skull$Csize) )
+
+#slopes
+summary.pairwise(pairwisecheck, test.type = "dist")
+#angles
+summary.pairwise(pairwisecheck, test.type = "VC", angle.type = "deg")
+
+
+```

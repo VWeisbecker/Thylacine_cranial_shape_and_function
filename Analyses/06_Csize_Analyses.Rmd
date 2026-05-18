@@ -14,10 +14,11 @@ knitr::opts_chunk$set(echo = TRUE)
 library(geomorph) # CRAN v4.0.10 
 library(ape)      # CRAN v5.8-1 
 library(nlme)     # CRAN v3.1-168 
-library(dplyr)    # CRAN v1.1.4 
-library(here)     # CRAN v1.0.1 
+library(dplyr)    # CRAN v1.2.0 
+library(here)     # CRAN v1.0.2 
 library(geiger)   # CRAN v2.0.11 
-library(svglite)  # CRAN v2.2.1 
+library(svglite)  # CRAN v2.2.2 
+
 ```
 
 ```{r Functions}
@@ -229,8 +230,8 @@ plotData$PtSet[plotData$Clade == "Metatheria"] <- 23
 
 
 ```{r PGLS Regression plot}
-# svglite(filename = here::here("Figures", "Csize_Regression.svg"),
-#         height = 5, width = 6)
+ svglite(filename = here::here("Figures", "Csize_Regression.svg"),
+         height = 5, width = 6)
 plot(NULL,
      xlim = range(log10(plotData$Mass_g)), 
      ylim = range(log10(plotData$Csize)), 
@@ -277,7 +278,7 @@ legend("topleft",
        horiz = F , 
        inset = c(0.01, 0.0))
 box(col = "#000000")
-# dev.off()
+ dev.off()
 ```
 
 
@@ -320,8 +321,8 @@ plotData$AlphaCol[plotData$Taxon == "Vulpes_vulpes"] <- "#ffaa5c"
 ```
 
 ```{r}
-# svglite(filename = here::here("Figures", "Csize_Stripchart.svg"),
-#         pointsize = 6, height = 3.5, width = 3.5)
+ svglite(filename = here::here("Figures", "Csize_Stripchart.svg"),
+         pointsize = 6, height = 3.5, width = 3.5)
 plot(NULL,
      xlim = c(0,2), # so the plot is nice and roomy
      ylim = range(plotData$Csize),
@@ -332,6 +333,6 @@ points(plotData$Csize ~ jitter(plotData$Strip, 5),
            col = "#000000",
            bg = plotData$AlphaCol,
            cex = 3, ylab = "Centroid Size")
-# dev.off()
+ dev.off()
 ```
 

@@ -12,14 +12,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r Packages}
-library(geomorph)  # CRAN v4.0.10 
-library(tidyverse) # CRAN v2.0.0 
-library(ggplot2)   # CRAN v3.5.2 
-library(svglite)   # CRAN v2.2.1 
-library(here)      # CRAN v1.0.1 
-library(phytools)  # CRAN v2.4-4 
-library(ape)       # CRAN v5.8-1 
-library(shapes)    # CRAN v1.2.7
+library(geomorph)  # CRAN v4.0.10
+library(shapes)    # CRAN v1.2.8
+library(tidyverse) # CRAN v2.0.0
+library(ggplot2)   # CRAN v4.0.2
+library(svglite)   # CRAN v2.2.2
+library(here)      # CRAN v1.0.2
 ```
 
 ```{r Load data}
@@ -100,7 +98,9 @@ row.names(mesProcDist) <- mesProcDist$Species
 mesProcDist <- mesProcDist[!row.names(mesProcDist) %in% "Thylacinus_cynocephalus",]
 
 #make table for supplementaries:
-load(file="./Data/Processed/functional_procdists_table.rda")
+
+
+load( file=here("Data", "Processed", "functional_procdists_table.rda"))
 
 #Check check
 rownames(fnpProcDist)==rownames(functional_procdists_table)
@@ -111,7 +111,7 @@ colnames(Procdist_tables) <- c("Species", "Cranium","Rostrum", "Neurocranium", "
 Procdist_tables[,2:7]<- round (Procdist_tables[,2:7], 4)
 
 
-write.csv(Procdist_tables, file="./Figures/Combined_Procdist_table.csv")
+write.csv(Procdist_tables, file=here("Figures", "Combined_Procdist_table.csv"))
 
 ```
 
@@ -179,8 +179,8 @@ rm(mesSpeciesCoords,
 ```
 
 ```{r Species ProcDistance plot}
-#svglite(filename = here::here("Figures", "Procdist_DevoSpecies_Rev2.svg"),
-        #pointsize = 6, height = 6, width = 3.6)
+svglite(filename = here::here("Figures", "Procdist_DevoSpecies_Rev2.svg"),
+        pointsize = 6, height = 6, width = 3.6)
 ggplot(data = plotDataSpecies, aes(y = Pdist, 
                                    x = fct_inorder(Species), 
                                    colour = Set)) +
@@ -214,5 +214,5 @@ ggplot(data = plotDataSpecies, aes(y = Pdist,
         axis.text.x = element_text(size = 8),
         axis.text.y = element_text(size = 8),
         legend.position = "bottom") 
-#dev.off()
+dev.off()
 ```
