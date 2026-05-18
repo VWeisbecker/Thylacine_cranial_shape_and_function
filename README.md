@@ -44,7 +44,7 @@ Contains all data required to run the analyses, including the [landmark data](/D
   
 * [**13_phyloMap_Tree_Figures.Rmd**](Analyses/13_phyloMap_Tree_Figures.Rmd) code for the heat maps of distances from the thylacine for Supp. Figs. 3 and 4.
 
-*[**14_Supp_Note_2_Wheatsheaf_Index.Rmd**](Analyses/14_Supp_Note_2_Wheatsheaf_Index.Rmd) Code for replicating the supplementary exploration of the Wheatsheaf index in Supplementary Note 2
+* [**14_Supp_Note_2_Wheatsheaf_Index.Rmd**](Analyses/14_Supp_Note_2_Wheatsheaf_Index.Rmd) Code for replicating the supplementary exploration of the Wheatsheaf index in Supplementary Note 2
 
 ### Custom functions
 The Benjamini-Hochberg procedure and use of the Evomap package call custom functions, most of which are defined in the [..Data/Functions/Fun.R](/Data/Functions/Fun.R) file. 
